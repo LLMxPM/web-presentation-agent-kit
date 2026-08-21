@@ -1,0 +1,4 @@
+interface:
+  display_name: "Web Presentation"
+  short_description: "通过 External API v1 协助创建和校验演示页面"
+  default_prompt: "使用 web-presentation 的 External API v1 完成当前创作任务，并遵守工作空间、规范、校验和异步任务边界。"
