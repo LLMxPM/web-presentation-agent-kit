@@ -37,6 +37,23 @@ def test_cli_help() -> None:
     assert "profile" in result.output
 
 
+def test_page_validate_help_describes_structured_edits() -> None:
+    """页面校验帮助应说明 edits 文件的字段和允许的操作类型。"""
+
+    result = CliRunner().invoke(main, ["page", "validate", "--help"])
+
+    assert result.exit_code == 0, result.output
+    for text in (
+        "replace_exact",
+        "old_text",
+        "insert_after",
+        "anchor_text",
+        "rewrite_file",
+        "content",
+    ):
+        assert text in result.output
+
+
 
 def test_cli_doctor_unconfigured(monkeypatch, tmp_path) -> None:
     """测试在未配置环境时的 doctor 输出。"""

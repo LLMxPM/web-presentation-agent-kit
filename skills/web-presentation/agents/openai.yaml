@@ -1,4 +1,4 @@
 interface:
   display_name: "Web Presentation"
-  short_description: "通过 wp CLI 协助创建和校验演示页面"
-  default_prompt: "使用 $web-presentation 的 wp CLI 完成当前演示创作任务；先发现工作空间并读取最新规范与对象基线，遵守固定画布、Runtime Kit、校验、异步任务、归档和凭证边界。"
+  short_description: "通过 wp CLI 生成、校验和完善 Web Presentation 演示页面"
+  default_prompt: "使用 $web-presentation 通过 wp CLI 完成演示页面生成或修改；按需读取平台资源模型、页面生成流程、代码规范、资源设计系统和校验交付参考。"

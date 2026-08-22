@@ -23,6 +23,12 @@ from wp.commands.common import (
     resolve_wait_job,
 )
 
+_PAGE_EDITS_FILE_HELP = (
+    "页面编辑操作 JSON 数组；每项的 type 只能是 replace_exact、insert_after 或 rewrite_file。"
+    " replace_exact 使用 old_text、new_text；insert_after 使用 anchor_text、new_text；"
+    "rewrite_file 使用 content。"
+)
+
 
 
 @click.group("page")
@@ -207,7 +213,7 @@ def copy_page_cmd(ctx: click.Context, page_id: int, payload_file: str) -> None:
 
 @page_group.command("edit")
 @click.argument("page_id", type=int)
-@click.option("--edits-file", type=click.Path(exists=True, dir_okay=False), required=True, help="页面编辑操作 JSON 数组")
+@click.option("--edits-file", type=click.Path(exists=True, dir_okay=False), required=True, help=_PAGE_EDITS_FILE_HELP)
 @click.option("--base-version-no", type=int, required=True)
 @click.option("--wait/--no-wait", default=True)
 @click.option("--timeout", type=float, default=120.0, show_default=True)
@@ -273,10 +279,16 @@ def page_dependencies_cmd(ctx: click.Context, page_id: int) -> None:
 
 @page_group.command("validate")
 @click.argument("page_id", type=int)
-@click.option("--mode", type=click.Choice(["current", "content", "edits"]), default="current")
-@click.option("--source-file", type=click.Path(exists=True, dir_okay=False))
-@click.option("--edits-file", type=click.Path(exists=True, dir_okay=False))
-@click.option("--detail", is_flag=True)
+@click.option(
+    "--mode",
+    type=click.Choice(["current", "content", "edits"]),
+    default="current",
+    show_default=True,
+    help="校验模式：current 校验当前源码；content 校验完整候选源码；edits 校验结构化编辑后的候选源码。",
+)
+@click.option("--source-file", type=click.Path(exists=True, dir_okay=False), help="content 模式使用的完整候选源码文件")
+@click.option("--edits-file", type=click.Path(exists=True, dir_okay=False), help=_PAGE_EDITS_FILE_HELP)
+@click.option("--detail", is_flag=True, help="返回更详细的校验诊断")
 @click.pass_context
 def validate_page_cmd(ctx: click.Context, page_id: int, mode: str, source_file: str | None, edits_file: str | None, detail: bool) -> None:
     """校验页面当前或候选源码。"""

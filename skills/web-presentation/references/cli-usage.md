@@ -1,171 +1,154 @@
-# `wp` CLI 调用参考
+# CLI 工作流
 
-本参考只记录 Agent 调用 CLI 的稳定方式和工作流检查点。具体参数以当前安装版本的 `wp --help` 和子命令帮助为准；如果帮助与本文不一致，以运行结果为准。External API `/api/v1/guides` 对应 CLI 的 `wp guide` 命令。
+本参考只说明外部 Agent 如何用 `wp` 发现能力和执行工作流。参数、请求 Schema、Scope、错误码和响应字段以当前安装版本的 `wp --help`、`wp <group> --help`、`wp guide` 以及 Backend External API v1 契约为准。
 
-## 运行 CLI
+## 入口与认证
 
-在已安装 `wp` 的环境中直接调用：
+Endpoint 填 Backend 根地址，不要包含 `/api/v1`。优先交互式输入 PAT，不要把真实 Token 放进命令、Skill、日志、源码或回复：
 
 ```bash
 wp --help
-wp page --help
+wp login
+wp whoami
+wp doctor
+wp profile list
+wp profile use <profile>
 ```
 
-在 `web-presentation-agent-kit` 仓库开发或未安装入口时调用：
+未安装入口或在 agent-kit 仓库开发时使用：
 
 ```bash
 uv run --project packages/cli wp --help
-uv run --project packages/cli wp page --help
 ```
 
-安装为可执行命令：
-
-```bash
-uv tool install --editable packages/cli
-wp --help
-```
-
-不要反复启动平台服务；CLI 只连接已有服务。Endpoint 配置填写平台服务根地址，例如 `http://127.0.0.1:8000` 或 `https://api.example.com`，不要包含 `/api/v1`。
-
-## 登录、Profile 和工作空间
-
-推荐让 CLI 交互式隐藏输入 PAT，不要把真实 PAT 写入命令、聊天、日志或脚本：
-
-```bash
-wp login
-wp login --endpoint https://api.example.com
-wp whoami
-wp doctor
-```
-
-如果使用非默认环境，先切换 Profile。Profile 保存 Endpoint、PAT 和默认工作空间：
-
-```bash
-wp profile list
-wp profile use production
-```
-
-写入前必须确定唯一工作空间：
+每次写入前确认工作空间；可以设置默认空间，也可以对单次命令覆盖：
 
 ```bash
 wp workspace list
 wp workspace use <workspace_id>
-wp workspace capabilities --workspace-id <workspace_id>
+wp --json --workspace <workspace_id> workspace capabilities
+wp --json --workspace <workspace_id> project list
 ```
 
-单次命令也可以用全局选项覆盖本地默认值：
+`--workspace` 只是请求上下文，不替代 Backend 的权限和归属校验。没有明确唯一空间时不写入。
+
+## 输出、规范与操作指南
+
+全局选项必须放在子命令之前：
 
 ```bash
-wp --profile production --workspace <workspace_id> project list
-```
-
-`--workspace` 不能替代平台的权限校验；它只是本次请求的工作空间上下文。没有明确空间时不执行写入。
-
-## 输出和发现
-
-自动化或需要稳定解析时，把 `--json` 放在子命令之前：
-
-```bash
-wp --json workspace list
 wp --json page get <page_id>
 wp --json job wait <job_id>
 ```
 
-`--json` 用于把支持人类可读表格或代码视图的命令切换为 JSON；创建、更新、校验、任务和能力目录等复杂响应本身默认就是 JSON，不依赖该选项。
+`--json` 让支持表格或代码视图的命令输出结构化 JSON；创建、更新、校验、能力目录和 Job 等复杂响应默认就是 JSON。
 
-页面或组件源码任务前先遵守 Skill 中的内容、构图和 Runtime Kit 约束，再使用 CLI 做独立源码预检：
+源码任务先读取当前公开规范：
+
+```bash
+wp standards page
+wp standards component
+```
+
+首次使用复杂操作、不确定 payload/edits/options 或遇到参数错误时读取操作指南：
+
+```bash
+wp guide list
+wp guide get <operation_key>
+wp page --help
+wp page edit --help
+```
+
+命令的具体参数以当前 CLI 帮助和操作指南为准，不要凭记忆拼接请求字段。
+
+## 读取顺序
+
+先读元数据，再读需要的视图：
+
+```bash
+wp --json project list
+wp --json project get <project_id>
+wp --json project configuration get <project_id>
+wp --json project route get <project_id>
+wp --json page list --project-id <project_id>
+wp --json page get <page_id>
+wp --json page source <page_id>
+wp --json page dependencies <page_id>
+```
+
+跨页面复用前查询工作空间资产和组件，不能仅凭名称猜测：
+
+```bash
+wp --json component list
+wp --json component list --scope suggested --project-id <project_id>
+wp --json component dependencies <component_id>
+wp --json asset list
+wp --json asset get <asset_id>
+wp --json theme list
+wp --json style list
+wp --json font list
+wp --json runtime-kit list
+wp --json runtime-kit get <item>
+```
+
+## 写入命令选择
+
+复杂 JSON 使用文件，不把长 JSON 拼在命令行中：
+
+| 目标 | CLI 入口 | 关键基线 |
+| --- | --- | --- |
+| 项目名称/说明 | `wp project update` | 最新项目 ID |
+| 项目展示配置 | `wp project configuration update` | 最新 configuration |
+| 项目路由树 | `wp project route replace` | 最新完整 route tree；全量替换 |
+| 页面元数据 | `wp page update` | 最新页面 ID |
+| 页面新建 | `wp page create --project-id ... --file ...` | 项目 ID、完整 SFC |
+| 页面源码编辑 | `wp page edit <page_id>` | `current_version_no`、最新源码片段 |
+| 组件新建 | `wp component create` | 类型、完整 SFC、preview schema |
+| 组件源码编辑 | `wp component edit <component_id>` | `base_version_no`、`base_draft_hash`、最新源码 |
+| 组件元数据/schema | `wp component update` | 最新 draft/version 基线 |
+| 主题/样式/资源 | 对应 `create/update/copy/upload` | 最新对象、真实字段和幂等键 |
+
+文件参数按命令帮助为准，常见的是 `--payload-file`、`--edits-file`、`--preview-schema-file`、`--content-file`、`--route-file` 和 `--ids-file`。页面或组件的 `--edits-file` 必须使用约定的结构化编辑数组，字段和允许的 `type` 见[校验与交付](./validation-and-delivery.md#editsjson-格式)。
+
+所有会改变数据、取消任务或人工重试任务的命令使用 `--idempotency-key`。网络超时后只有在确认请求没有产生可见结果时，才用同一个业务 key 重放；不同业务请求不得复用 key。
+
+## 异步任务
+
+页面/组件创建和源码编辑等重任务默认等待；使用 `--no-wait` 时保存返回的 Job ID：
+
+```bash
+wp page create --project-id <project_id> --name "核心结论" --file ./Page.vue --no-wait
+wp job wait <job_id> --timeout 120
+wp job get <job_id>
+```
+
+只接受 `pending | running | succeeded | failed | canceled`。`succeeded` 后重新读对象；`failed` 或 `canceled` 不得当作成功。仅当平台明确任务可人工重试时才使用：
+
+```bash
+wp job retry <job_id> --idempotency-key <new-retry-key>
+```
+
+版本冲突、权限错误、参数错误和资源缺失先重新读取/修正，不执行原命令盲重试。
+
+## 校验、截图与归档
+
+候选源码需要独立预检时使用：
 
 ```bash
 wp --json page validate <page_id> --mode content --source-file ./Page.vue
 wp --json component validate <component_id> --mode content --source-file ./MetricCard.vue
 ```
 
-`validate` 是诊断，不是写入；它通过后仍需遵守目标接口的版本、草稿和异步任务约束。
-
-## 常用只读命令
+写入任务本身会执行平台编译、渲染和布局校验；独立 `validate` 是候选预检或失败诊断，不是绕过写入流程的替代品。视觉确认获取最新截图：
 
 ```bash
-# 项目和页面
-wp project list
-wp project get <project_id>
-wp page list --project-id <project_id>
-wp page get <page_id>
-wp page source <page_id>
-
-# 组件、资源、主题和样式
-wp component list
-wp component get <component_id>
-wp asset list
-wp theme list
-wp theme get <theme_id>
-wp style list
-wp style get <style_id>
-
-# 页面截图；默认写入 page-<page_id>-v<version>.png
 wp page screenshot <page_id> --output .tmp/page.png
 ```
 
-截图命令通过一次 External API GET 获取最新 PNG，返回实际页面版本和文件路径，不要为截图命令额外创建或轮询 Mutation Job。截图用于视觉确认时，检查画布尺寸、溢出、文字可读性、主体视觉重心、资源加载和空态/加载态/错误态。
-
-## 写入命令和异步任务
-
-先读目标对象和当前 CLI 子命令帮助，再执行最小范围写入。当前 CLI 常用写入形态如下：
-
-```bash
-# 轻量业务对象
-wp project create --payload-file project.json
-wp page update <page_id> --payload-file page.json
-wp component update <component_id> --payload-file component.json
-
-# 页面/组件源码创建：完整 Vue SFC 放在本地文件中
-wp page create --project-id <project_id> --name "概览" --file ./Page.vue
-wp component create --name "指标卡" --import-name MetricCard --file ./MetricCard.vue
-```
-
-页面和组件源码创建、编辑等重任务可能由平台异步处理。创建命令默认等待；需要先拿到任务 ID 时使用 `--no-wait`，然后轮询：
-
-```bash
-wp page create --project-id <project_id> --name "概览" --file ./Page.vue --no-wait
-wp job wait <job_id> --timeout 60
-```
-
-只接受平台返回的 `pending | running | succeeded | failed | canceled` 终态语义。`succeeded` 后再读取最新对象或截图；`failed` 时保留 `code`、错误消息和诊断摘要。只有平台明确该任务可人工重试时才执行：
-
-```bash
-wp job retry <job_id> --idempotency-key <retry-key>
-```
-
-所有写命令都会携带幂等键；需要在超时或网络失败后安全重放同一个业务请求时，显式传入 `--idempotency-key <key>`，重放时必须复用同一个 key。不同请求不要复用 key。
-
-版本、草稿 hash、权限或参数冲突不能靠原命令盲重试；先重新读取当前对象和指南。
-
-## 归档和凭证边界
-
-CLI 的 `archive` 命令是可审计的归档语义，不是永久删除：
+归档不等于删除，`--yes` 只在用户已明确授权当前归档动作时使用：
 
 ```bash
 wp page archive <page_id>
 wp component archive <component_id>
 wp asset archive <asset_id>
-wp page archive --ids-file page-ids.json --yes
 ```
-
-默认保留交互确认。只有用户已经明确授权当前归档动作时，才可以追加 `--yes`；不要把 `--yes` 当作 Agent 的默认参数。CLI 不提供永久删除、跨工作空间写入、直接数据库/Runtime/Chromium 访问或 Build 产物下载。
-
-## 命令选择速查
-
-| 用户目标 | 先做什么 | CLI 入口 |
-| --- | --- | --- |
-| 确认身份和连通性 | 检查 Profile、PAT、空间 | `wp doctor`、`wp whoami` |
-| 选择工作空间 | 列出并验证空间 | `wp workspace list`、`wp workspace use <id>` |
-| 了解可执行命令 | 读取当前命令帮助 | `wp --help`、`wp <group> --help` |
-| 读页面源码 | 先读元数据，再读源码 | `wp page get <id>`、`wp page source <id>` |
-| 读取平台规范 | 先读取 standards 和 guide | `wp standards page`、`wp guide list` |
-| 校验实体源码 | 指定实体和候选模式 | `wp page validate <id>`、`wp component validate <id>` |
-| 创建页面/组件 | 先读 Skill 约束、项目基线和子命令帮助 | `wp page create ...`、`wp component create ...` |
-| 等待重任务 | 查询并保留 Job 结果 | `wp job wait <id>` |
-| 视觉确认 | 获取最新版本截图 | `wp page screenshot <page_id> -o <file>` |
-| 轻量元数据更新 | 提供幂等键 | `wp page update ...`、`wp component update ...` |
-| 归档 | 保留确认 | `wp <resource> archive <id>` |
-
-Build External API 和产物下载契约尚未冻结，当前不要通过 CLI 猜测或拼接构建命令。
