@@ -6,9 +6,10 @@ import click
 
 from wp.commands.asset import asset_group
 from wp.commands.auth import login_cmd, logout_cmd, whoami_cmd
-from wp.commands.build import build_group
 from wp.commands.component import component_group
 from wp.commands.doctor import doctor_cmd
+from wp.commands.guide import guide_cmd
+from wp.commands.job import job_group
 from wp.commands.page import page_group
 from wp.commands.profile import profile_group
 from wp.commands.project import project_group
@@ -39,6 +40,7 @@ main.add_command(logout_cmd)
 main.add_command(whoami_cmd)
 main.add_command(doctor_cmd)
 main.add_command(validate_cmd)
+main.add_command(guide_cmd)
 main.add_command(screenshot_cmd)
 main.add_command(profile_group)
 
@@ -51,7 +53,7 @@ main.add_command(component_group)
 main.add_command(asset_group)
 main.add_command(theme_group)
 main.add_command(style_group)
-main.add_command(build_group)
+main.add_command(job_group)
 
 
 if __name__ == "__main__":

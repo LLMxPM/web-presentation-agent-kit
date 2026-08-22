@@ -34,5 +34,9 @@ wp asset list
 wp theme list
 wp style list
 wp validate <page_or_component.vue>
-wp build run --project-id <project_id>
+wp guide page.update
+wp page update <page_id> --title "新标题"
+wp job mutation get <job_id> --wait
 ```
+
+Build External API 尚未冻结，CLI 不提供构建和产物下载命令。

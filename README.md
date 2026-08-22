@@ -53,8 +53,9 @@ MCP 实施文档：[docs/mcp-implementation-plan.md](docs/mcp-implementation-pla
 
 1. Backend 是权限、工作空间隔离、业务校验和异步任务状态的最终事实源；API 语义以主仓 [External Agent API v1 契约](https://github.com/LLMxPM/web-presentation/blob/main/docs/developer/reference/external-agent-api.md) 为准。
 2. CLI、MCP 和 Skill 不复制 Backend 内部 AI `tool_specs.py`，只消费 `/api/v1/guides`、`/api/v1/standards/*` 和资源接口。
-3. 写操作必须携带幂等语义；页面、组件、截图和构建等重任务通过 Backend 已有任务接口执行。
-4. PAT 不得进入工具返回、异常消息、日志、MCP Resource URI 或 telemetry。
+3. 写操作必须携带幂等语义；页面、组件和截图等重任务通过 Backend 已有任务接口执行。
+4. Build External API 尚未冻结，本仓 CLI、MCP、共享客户端和 Skill 均不提供构建或产物下载能力。
+5. PAT 不得进入工具返回、异常消息、日志、MCP Resource URI 或 telemetry。
 
 主仓文档只维护平台契约；命令、Tool、Resource、Prompt、适配测试和实施进度只在本仓维护，避免两边同时修改同一份实现说明。
 

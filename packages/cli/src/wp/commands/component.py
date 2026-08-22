@@ -173,6 +173,34 @@ def create_component_cmd(
         raise SystemExit(1)
 
 
+@component_group.command("update")
+@click.argument("component_id", type=int)
+@click.option("--name", help="组件展示名称")
+@click.option("--summary", help="组件摘要")
+@click.option("--idempotency-key", help="复用已有幂等键以安全重放同一更新")
+@click.pass_context
+def update_component_cmd(
+    ctx: click.Context,
+    component_id: int,
+    name: str | None,
+    summary: str | None,
+    idempotency_key: str | None,
+) -> None:
+    """只更新组件名称或摘要；源码与结构字段必须走 Mutation。"""
+
+    payload = {key: value for key, value in {"name": name, "summary": summary}.items() if value is not None}
+    if not payload:
+        raise click.UsageError("至少提供 --name 或 --summary 中的一项")
+
+    profile = get_profile(load_config(), ctx.obj.get("profile"))
+    client = ApiClient(profile, workspace_id=ctx.obj.get("workspace_id"))
+    try:
+        print_json(client.patch(f"/components/{component_id}", json_data=payload, idempotency_key=idempotency_key))
+    except ApiClientError as err:
+        print_error(f"更新组件失败: {err.message}", code=err.code, details=err.details)
+        raise SystemExit(1)
+
+
 @component_group.command("publish")
 @click.argument("component_id", type=int)
 @click.option("--release-name", "-r", help="发布版本标签")

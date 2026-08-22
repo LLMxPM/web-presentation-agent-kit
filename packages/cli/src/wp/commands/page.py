@@ -98,6 +98,44 @@ def get_page_source_cmd(ctx: click.Context, page_id: int) -> None:
         raise SystemExit(1)
 
 
+@page_group.command("update")
+@click.argument("page_id", type=int)
+@click.option("--title", help="页面标题")
+@click.option("--summary", help="页面摘要")
+@click.option("--speaker-notes", help="演讲备注")
+@click.option("--idempotency-key", help="复用已有幂等键以安全重放同一更新")
+@click.pass_context
+def update_page_cmd(
+    ctx: click.Context,
+    page_id: int,
+    title: str | None,
+    summary: str | None,
+    speaker_notes: str | None,
+    idempotency_key: str | None,
+) -> None:
+    """只更新页面公开的安全元数据；源码和结构字段必须走 Mutation。"""
+
+    payload = {
+        key: value
+        for key, value in {
+            "title": title,
+            "summary": summary,
+            "speaker_notes": speaker_notes,
+        }.items()
+        if value is not None
+    }
+    if not payload:
+        raise click.UsageError("至少提供 --title、--summary 或 --speaker-notes 中的一项")
+
+    profile = get_profile(load_config(), ctx.obj.get("profile"))
+    client = ApiClient(profile, workspace_id=ctx.obj.get("workspace_id"))
+    try:
+        print_json(client.patch(f"/pages/{page_id}", json_data=payload, idempotency_key=idempotency_key))
+    except ApiClientError as err:
+        print_error(f"更新页面失败: {err.message}", code=err.code, details=err.details)
+        raise SystemExit(1)
+
+
 @page_group.command("create")
 @click.option("--project-id", "-p", required=True, type=int, help="所属项目 ID")
 @click.option("--name", "-n", required=True, help="页面标题")
