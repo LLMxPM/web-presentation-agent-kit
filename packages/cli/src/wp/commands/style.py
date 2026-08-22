@@ -7,6 +7,7 @@ import click
 from wp.client import ApiClient, ApiClientError
 from wp.config import get_profile, load_config
 from wp.formatter import print_error, print_json, print_success, print_table
+from wp.commands.common import confirm_archive, get_client, handle_api_error, output_result, read_json_file, require_ids, require_object
 
 
 @click.group("style")
@@ -69,42 +70,69 @@ def get_style_cmd(ctx: click.Context, style_id: int) -> None:
 
 
 @style_group.command("create")
-@click.option("--name", "-n", required=True, help="样式方案名称")
+@click.option("--name", "-n", help="样式方案名称")
 @click.option("--description", "-d", help="样式描述")
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), help="完整样式创建 JSON 请求体")
 @click.pass_context
-def create_style_cmd(ctx: click.Context, name: str, description: str | None) -> None:
+def create_style_cmd(ctx: click.Context, name: str | None, description: str | None, payload_file: str | None) -> None:
     """创建新样式方案。"""
 
-    cfg = load_config()
-    profile = get_profile(cfg, ctx.obj.get("profile"))
-    client = ApiClient(profile, workspace_id=ctx.obj.get("workspace_id"))
+    try:
+        if payload_file:
+            payload = require_object(read_json_file(payload_file, label="样式创建载荷"), label="样式创建载荷")
+        else:
+            if not name:
+                raise click.UsageError("未使用 --payload-file 时必须提供 --name。")
+            payload = {"name": name, "description": description}
+        output_result(ctx, get_client(ctx).post("/styles", json_data=payload))
+    except ApiClientError as err:
+        handle_api_error("创建样式方案失败", err)
+
+
+@style_group.command("update")
+@click.argument("style_id", type=int)
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True)
+@click.pass_context
+def update_style_cmd(ctx: click.Context, style_id: int, payload_file: str) -> None:
+    """更新样式元数据和 configuration。"""
 
     try:
-        payload = {"name": name, "description": description}
-        style = client.post("/styles", json_data=payload)
-        print_success(f"样式方案创建成功！样式 ID: [bold]{style.get('id')}[/bold] ({style.get('name')})")
+        output_result(ctx, get_client(ctx).patch(f"/styles/{style_id}", json_data=require_object(read_json_file(payload_file, label="样式更新载荷"), label="样式更新载荷")))
     except ApiClientError as err:
-        print_error(f"创建样式方案失败: {err.message}", code=err.code)
-        raise SystemExit(1)
+        handle_api_error("更新样式失败", err)
+
+
+@style_group.command("copy")
+@click.argument("style_id", type=int)
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True)
+@click.pass_context
+def copy_style_cmd(ctx: click.Context, style_id: int, payload_file: str) -> None:
+    """复制样式方案。"""
+
+    try:
+        output_result(ctx, get_client(ctx).post(f"/styles/{style_id}/copy", json_data=require_object(read_json_file(payload_file, label="样式复制载荷"), label="样式复制载荷")))
+    except ApiClientError as err:
+        handle_api_error("复制样式失败", err)
 
 
 @style_group.command("archive")
-@click.argument("style_id", type=int)
+@click.argument("style_id", type=int, required=False)
+@click.option("--ids-file", type=click.Path(exists=True, dir_okay=False))
 @click.option("--yes", "-y", is_flag=True, help="跳过确认直接归档")
 @click.pass_context
-def archive_style_cmd(ctx: click.Context, style_id: int, yes: bool) -> None:
+def archive_style_cmd(ctx: click.Context, style_id: int | None, ids_file: str | None, yes: bool) -> None:
     """归档样式方案（默认样式受保护禁止归档）。"""
 
-    if not yes and not click.confirm(f"确定要归档样式 ID {style_id} 吗？"):
-        return
-
-    cfg = load_config()
-    profile = get_profile(cfg, ctx.obj.get("profile"))
-    client = ApiClient(profile, workspace_id=ctx.obj.get("workspace_id"))
-
     try:
-        client.delete(f"/styles/{style_id}")
-        print_success(f"样式方案 ID {style_id} 已成功归档。")
+        client = get_client(ctx)
+        if ids_file:
+            ids = require_ids(read_json_file(ids_file, label="归档 ID"))
+            confirm_archive(ids, yes=yes, label="样式")
+            output_result(ctx, client.post("/styles/batch-archive", json_data={"ids": ids}))
+            return
+        if style_id is None:
+            raise click.UsageError("必须提供 style_id 或 --ids-file。")
+        confirm_archive([style_id], yes=yes, label="样式")
+        output_result(ctx, client.post(f"/styles/{style_id}/archive"))
     except ApiClientError as err:
-        print_error(f"归档样式方案失败: {err.message}", code=err.code)
-        raise SystemExit(1)
+        handle_api_error("归档样式方案失败", err)

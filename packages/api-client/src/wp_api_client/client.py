@@ -125,6 +125,68 @@ class ApiClient:
         path = "/guides" if operation_key is None else f"/guides/{operation_key}"
         return self.get(path)
 
+    def get_standard(self, entity_type: str) -> dict[str, Any]:
+        """读取页面或组件开发标准。"""
+
+        if entity_type not in {"page", "component"}:
+            raise ValueError("entity_type 必须为 page 或 component")
+        return self.get(f"/standards/{entity_type}")
+
+    def list_runtime_kit(self, params: Mapping[str, Any] | None = None) -> Any:
+        """读取 Runtime Kit 能力列表。"""
+
+        return self.get("/runtime-kit", params=params)
+
+    def get_runtime_kit_item(self, item: str) -> dict[str, Any]:
+        """读取单个 Runtime Kit 能力。"""
+
+        return self.get(f"/runtime-kit/{item}")
+
+    def list_fonts(self, params: Mapping[str, Any] | None = None) -> Any:
+        """读取当前工作空间字体列表。"""
+
+        return self.get("/fonts", params=params)
+
+    def validate_entity(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+        """调用页面/组件实体候选内容校验接口。"""
+
+        return self.post("/validate/entity", json_data=dict(payload), idempotent=False)
+
+    def create_page(self, payload: Mapping[str, Any], *, idempotency_key: str | None = None) -> dict[str, Any]:
+        """提交页面创建 Mutation Job。"""
+
+        return self.post("/pages", json_data=dict(payload), idempotency_key=idempotency_key)
+
+    def create_component(self, payload: Mapping[str, Any], *, idempotency_key: str | None = None) -> dict[str, Any]:
+        """提交组件创建 Mutation Job。"""
+
+        return self.post("/components", json_data=dict(payload), idempotency_key=idempotency_key)
+
+    def copy_page(self, page_id: int, payload: Mapping[str, Any], *, idempotency_key: str | None = None) -> dict[str, Any]:
+        """复制页面到目标项目。"""
+
+        return self.post(f"/pages/{page_id}/copy", json_data=dict(payload), idempotency_key=idempotency_key)
+
+    def edit_page(self, page_id: int, payload: Mapping[str, Any], *, idempotency_key: str | None = None) -> dict[str, Any]:
+        """提交页面源码编辑 Mutation Job。"""
+
+        return self.post(f"/pages/{page_id}/edits", json_data=dict(payload), idempotency_key=idempotency_key)
+
+    def edit_component(self, component_id: int, payload: Mapping[str, Any], *, idempotency_key: str | None = None) -> dict[str, Any]:
+        """提交组件源码编辑 Mutation Job。"""
+
+        return self.post(f"/components/{component_id}/edits", json_data=dict(payload), idempotency_key=idempotency_key)
+
+    def update_component_metadata_async(
+        self,
+        payload: Mapping[str, Any],
+        *,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        """提交组件元数据重校验 Mutation Job。"""
+
+        return self.post("/jobs/mutations/components/metadata", json_data=dict(payload), idempotency_key=idempotency_key)
+
     def post(
         self,
         path: str,

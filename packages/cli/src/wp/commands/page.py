@@ -10,6 +10,19 @@ from wp.client import ApiClient, ApiClientError
 from wp.commands.screenshot import screenshot_cmd
 from wp.config import get_profile, load_config
 from wp.formatter import print_code, print_error, print_json, print_success, print_table
+from wp.commands.common import (
+    confirm_archive,
+    get_client,
+    handle_api_error,
+    output_result,
+    read_json_file,
+    read_text_file,
+    require_array,
+    require_ids,
+    require_object,
+    require_success_job,
+    resolve_wait_job,
+)
 
 
 
@@ -100,121 +113,180 @@ def get_page_source_cmd(ctx: click.Context, page_id: int) -> None:
 
 @page_group.command("update")
 @click.argument("page_id", type=int)
-@click.option("--title", help="页面标题")
-@click.option("--summary", help="页面摘要")
-@click.option("--speaker-notes", help="演讲备注")
-@click.option("--idempotency-key", help="复用已有幂等键以安全重放同一更新")
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="页面更新 JSON 请求体")
 @click.pass_context
-def update_page_cmd(
-    ctx: click.Context,
-    page_id: int,
-    title: str | None,
-    summary: str | None,
-    speaker_notes: str | None,
-    idempotency_key: str | None,
-) -> None:
-    """只更新页面公开的安全元数据；源码和结构字段必须走 Mutation。"""
+def update_page_cmd(ctx: click.Context, page_id: int, payload_file: str) -> None:
+    """更新页面轻量元数据；源码和结构字段必须走 edit。"""
 
-    payload = {
-        key: value
-        for key, value in {
-            "title": title,
-            "summary": summary,
-            "speaker_notes": speaker_notes,
-        }.items()
-        if value is not None
-    }
-    if not payload:
-        raise click.UsageError("至少提供 --title、--summary 或 --speaker-notes 中的一项")
-
-    profile = get_profile(load_config(), ctx.obj.get("profile"))
-    client = ApiClient(profile, workspace_id=ctx.obj.get("workspace_id"))
     try:
-        print_json(client.patch(f"/pages/{page_id}", json_data=payload, idempotency_key=idempotency_key))
+        payload = require_object(read_json_file(payload_file, label="页面更新载荷"), label="页面更新载荷")
+        output_result(ctx, get_client(ctx).patch(f"/pages/{page_id}", json_data=payload))
     except ApiClientError as err:
-        print_error(f"更新页面失败: {err.message}", code=err.code, details=err.details)
-        raise SystemExit(1)
+        handle_api_error("更新页面失败", err)
 
 
 @page_group.command("create")
-@click.option("--project-id", "-p", required=True, type=int, help="所属项目 ID")
-@click.option("--name", "-n", required=True, help="页面标题")
-@click.option("--file", "-f", "file_path", required=True, type=click.Path(exists=True), help="Vue 源码文件路径")
+@click.option("--project-id", "-p", type=int, help="所属项目 ID")
+@click.option("--name", "-n", help="页面标题")
+@click.option("--file", "-f", "file_path", type=click.Path(exists=True), help="Vue 源码文件路径")
 @click.option("--description", "-d", help="页面描述")
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), help="完整页面创建 JSON 请求体")
 @click.option("--wait/--no-wait", default=True, help="是否等待后台 Worker 编译与诊断完成 (默认等待)")
 @click.pass_context
 def create_page_cmd(
     ctx: click.Context,
     project_id: int,
     name: str,
-    file_path: str,
+    file_path: str | None,
     description: str | None,
+    payload_file: str | None,
     wait: bool,
 ) -> None:
     """通过异步 Mutation 任务创建页面（带 AST 扫描与 Chromium 慢诊断）。"""
 
-    cfg = load_config()
-    profile = get_profile(cfg, ctx.obj.get("profile"))
-    client = ApiClient(profile, workspace_id=ctx.obj.get("workspace_id"))
-
     try:
-        source_code = Path(file_path).read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError) as exc:
-        print_error(f"无法读取文件 '{file_path}': {exc}")
-        raise SystemExit(1)
-    payload = {
-        "project_id": project_id,
-        "name": name,
-        "source_code": source_code,
-        "description": description,
-    }
-
-    try:
-        job = client.post("/jobs/mutations/pages", json_data=payload)
-        job_id = job.get("job_id")
-        print_success(f"页面创建任务已提交 (Job ID: [bold]{job_id}[/bold])")
-
-        if not wait:
-            if ctx.obj.get("as_json"):
-                print_json(job)
-            return
-
-        with click.progressbar(length=100, label="Worker 正在执行无锁规划与慢诊断...") as bar:
-            final_job = client.poll_mutation_job(job_id, timeout_seconds=60.0)
-            bar.update(100)
-
-        if final_job.get("status") == "succeeded":
-            result = final_job.get("result", {})
-            print_success(f"页面创建成功！页面 ID: [bold]{result.get('page_id')}[/bold] (版本: v{result.get('version_no')})")
+        if payload_file:
+            payload = require_object(read_json_file(payload_file, label="页面创建载荷"), label="页面创建载荷")
         else:
-            err = final_job.get("error", {})
-            print_error(f"页面创建失败: {err.get('message')}", code=err.get("code"))
-            raise SystemExit(1)
+            if project_id is None or not name or not file_path:
+                raise click.UsageError("未使用 --payload-file 时必须提供 --project-id、--name 和 --file。")
+            payload = {
+                "project_id": project_id,
+                "name": name,
+                "source_code": read_text_file(file_path, label="页面源码"),
+                "description": description,
+            }
+        client = get_client(ctx)
+        output_result(ctx, resolve_wait_job(client, client.create_page(payload), wait=wait, timeout=120.0))
     except ApiClientError as err:
-        print_error(f"提交页面任务失败: {err.message}", code=err.code)
-        raise SystemExit(1)
+        handle_api_error("提交页面任务失败", err)
 
 
 @page_group.command("archive")
-@click.argument("page_id", type=int)
+@click.argument("page_id", type=int, required=False)
+@click.option("--ids-file", type=click.Path(exists=True, dir_okay=False), help="批量归档 ID JSON 数组")
 @click.option("--yes", "-y", is_flag=True, help="跳过确认直接归档")
 @click.pass_context
-def archive_page_cmd(ctx: click.Context, page_id: int, yes: bool) -> None:
+def archive_page_cmd(ctx: click.Context, page_id: int | None, ids_file: str | None, yes: bool) -> None:
     """归档页面。"""
 
-    if not yes and not click.confirm(f"确定要归档页面 ID {page_id} 吗？"):
-        return
+    try:
+        client = get_client(ctx)
+        if ids_file:
+            ids = require_ids(read_json_file(ids_file, label="归档 ID"))
+            confirm_archive(ids, yes=yes, label="页面")
+            output_result(ctx, client.post("/pages/batch-archive", json_data={"ids": ids}))
+            return
+        if page_id is None:
+            raise click.UsageError("必须提供 page_id 或 --ids-file。")
+        confirm_archive([page_id], yes=yes, label="页面")
+        output_result(ctx, client.post(f"/pages/{page_id}/archive"))
+    except ApiClientError as err:
+        handle_api_error("归档页面失败", err)
 
-    cfg = load_config()
-    profile = get_profile(cfg, ctx.obj.get("profile"))
-    client = ApiClient(profile, workspace_id=ctx.obj.get("workspace_id"))
+
+@page_group.command("copy")
+@click.argument("page_id", type=int)
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="页面复制 JSON 请求体")
+@click.pass_context
+def copy_page_cmd(ctx: click.Context, page_id: int, payload_file: str) -> None:
+    """复制页面到目标项目。"""
 
     try:
-        client.delete(f"/pages/{page_id}")
-        print_success(f"页面 ID {page_id} 已成功归档。")
+        payload = require_object(read_json_file(payload_file, label="页面复制载荷"), label="页面复制载荷")
+        output_result(ctx, get_client(ctx).copy_page(page_id, payload))
     except ApiClientError as err:
-        print_error(f"归档页面失败: {err.message}", code=err.code)
-        raise SystemExit(1)
+        handle_api_error("复制页面失败", err)
+
+
+@page_group.command("edit")
+@click.argument("page_id", type=int)
+@click.option("--edits-file", type=click.Path(exists=True, dir_okay=False), required=True, help="页面编辑操作 JSON 数组")
+@click.option("--base-version-no", type=int, required=True)
+@click.option("--wait/--no-wait", default=True)
+@click.option("--timeout", type=float, default=120.0, show_default=True)
+@click.pass_context
+def edit_page_cmd(ctx: click.Context, page_id: int, edits_file: str, base_version_no: int, wait: bool, timeout: float) -> None:
+    """提交页面结构化编辑任务。"""
+
+    try:
+        edits = require_array(read_json_file(edits_file, label="页面编辑操作"), label="页面编辑操作")
+        payload = {"page_id": page_id, "base_version_no": base_version_no, "edits": edits}
+        client = get_client(ctx)
+        job = client.edit_page(page_id, payload)
+        result = resolve_wait_job(client, job, wait=wait, timeout=timeout)
+        if wait:
+            require_success_job(result)
+        output_result(ctx, result)
+    except ApiClientError as err:
+        handle_api_error("提交页面编辑失败", err)
+
+
+@page_group.group("version")
+def page_version_group() -> None:
+    """页面历史版本。"""
+
+
+@page_version_group.command("list")
+@click.argument("page_id", type=int)
+@click.pass_context
+def list_page_versions_cmd(ctx: click.Context, page_id: int) -> None:
+    """列出页面版本。"""
+
+    try:
+        output_result(ctx, get_client(ctx).get(f"/pages/{page_id}/versions"))
+    except ApiClientError as err:
+        handle_api_error("获取页面版本失败", err)
+
+
+@page_version_group.command("get")
+@click.argument("page_id", type=int)
+@click.argument("version_no", type=int)
+@click.pass_context
+def get_page_version_cmd(ctx: click.Context, page_id: int, version_no: int) -> None:
+    """获取页面指定版本。"""
+
+    try:
+        output_result(ctx, get_client(ctx).get(f"/pages/{page_id}/versions/{version_no}"))
+    except ApiClientError as err:
+        handle_api_error("获取页面版本内容失败", err)
+
+
+@page_group.command("dependencies")
+@click.argument("page_id", type=int)
+@click.pass_context
+def page_dependencies_cmd(ctx: click.Context, page_id: int) -> None:
+    """获取页面当前版本依赖。"""
+
+    try:
+        output_result(ctx, get_client(ctx).get(f"/pages/{page_id}/dependencies"))
+    except ApiClientError as err:
+        handle_api_error("获取页面依赖失败", err)
+
+
+@page_group.command("validate")
+@click.argument("page_id", type=int)
+@click.option("--mode", type=click.Choice(["current", "content", "edits"]), default="current")
+@click.option("--source-file", type=click.Path(exists=True, dir_okay=False))
+@click.option("--edits-file", type=click.Path(exists=True, dir_okay=False))
+@click.option("--detail", is_flag=True)
+@click.pass_context
+def validate_page_cmd(ctx: click.Context, page_id: int, mode: str, source_file: str | None, edits_file: str | None, detail: bool) -> None:
+    """校验页面当前或候选源码。"""
+
+    try:
+        payload: dict[str, object] = {"entity_type": "page", "entity_id": page_id, "mode": mode, "detail": detail}
+        if mode == "content":
+            if not source_file:
+                raise click.UsageError("content 模式必须提供 --source-file。")
+            payload["source_code"] = read_text_file(source_file, label="页面源码")
+        if mode == "edits":
+            if not edits_file:
+                raise click.UsageError("edits 模式必须提供 --edits-file。")
+            payload["edits"] = require_array(read_json_file(edits_file, label="页面编辑操作"), label="页面编辑操作")
+        output_result(ctx, get_client(ctx).validate_entity(payload))
+    except ApiClientError as err:
+        handle_api_error("页面校验失败", err)
 
 
 page_group.add_command(screenshot_cmd)

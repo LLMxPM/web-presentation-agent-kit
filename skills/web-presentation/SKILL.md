@@ -165,14 +165,14 @@ Web Presentation 的页面是固定尺寸的演示画布，不是可以随着内
 页面和组件创建、源码编辑等重任务通过平台 Mutation Job 执行。提交后使用：
 
 ```bash
-wp job mutation get <job_id> --wait --timeout 60
+wp job wait <job_id> --timeout 60
 ```
 
-只接受 `pending | running | succeeded | failed | canceled` 语义。成功后重新读取对象或截图；失败时保留平台返回的状态、错误码、错误消息和诊断摘要。只有平台明确任务可人工重试时，才执行 `wp job mutation retry <job_id>`；版本冲突、权限错误或参数错误必须先重新读取和修正。
+只接受 `pending | running | succeeded | failed | canceled` 语义。成功后重新读取对象或截图；失败时保留平台返回的状态、错误码、错误消息和诊断摘要。只有平台明确任务可人工重试时，才执行 `wp job retry <job_id>`；版本冲突、权限错误或参数错误必须先重新读取和修正。
 
 ### 5. 校验和视觉复核
 
-使用 `wp validate <file> --type page|component` 做独立源码预检；它是诊断，不是写入替代。写入返回的校验结果优先于本地猜测。需要视觉确认时使用 `wp screenshot <page_id> --output <file>` 获取最新 PNG，并基于真实版本检查布局和资源。
+使用 `wp page validate <page_id>` 或 `wp component validate <component_id>` 做实体候选内容校验；它是诊断，不是写入替代。写入返回的校验结果优先于本地猜测。需要视觉确认时使用 `wp page screenshot <page_id> --output <file>` 获取最新 PNG，并基于真实版本检查布局和资源。
 
 ### 6. 汇报真实结果
 

@@ -7,16 +7,16 @@ import click
 from wp.commands.asset import asset_group
 from wp.commands.auth import login_cmd, logout_cmd, whoami_cmd
 from wp.commands.component import component_group
+from wp.commands.catalog import font_group, runtime_kit_group
 from wp.commands.doctor import doctor_cmd
 from wp.commands.job import job_group
 from wp.commands.page import page_group
 from wp.commands.profile import profile_group
 from wp.commands.project import project_group
-from wp.commands.screenshot import screenshot_cmd
 from wp.commands.style import style_group
 from wp.commands.theme import theme_group
-from wp.commands.validate import validate_cmd
 from wp.commands.workspace import workspace_group
+from wp.commands.system import guide_group, standards_group, system_group
 
 
 @click.group()
@@ -38,9 +38,12 @@ main.add_command(login_cmd)
 main.add_command(logout_cmd)
 main.add_command(whoami_cmd)
 main.add_command(doctor_cmd)
-main.add_command(validate_cmd)
-main.add_command(screenshot_cmd)
 main.add_command(profile_group)
+main.add_command(system_group)
+main.add_command(standards_group)
+main.add_command(guide_group)
+main.add_command(runtime_kit_group)
+main.add_command(font_group)
 
 
 # 注册各实体资源命令组

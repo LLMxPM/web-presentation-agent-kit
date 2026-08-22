@@ -1,6 +1,6 @@
 # `wp` CLI 调用参考
 
-本参考只记录 Agent 调用 CLI 的稳定方式和工作流检查点。具体参数以当前安装版本的 `wp --help` 和子命令帮助为准；如果帮助与本文不一致，以运行结果为准。Backend `/api/v1/guides` 是平台契约接口，不是当前 CLI 的命令入口。
+本参考只记录 Agent 调用 CLI 的稳定方式和工作流检查点。具体参数以当前安装版本的 `wp --help` 和子命令帮助为准；如果帮助与本文不一致，以运行结果为准。External API `/api/v1/guides` 对应 CLI 的 `wp guide` 命令。
 
 ## 运行 CLI
 
@@ -68,14 +68,14 @@ wp --profile production --workspace <workspace_id> project list
 ```bash
 wp --json workspace list
 wp --json page get <page_id>
-wp --json job mutation get <job_id> --wait
+wp --json job wait <job_id>
 ```
 
 页面或组件源码任务前先遵守 Skill 中的内容、构图和 Runtime Kit 约束，再使用 CLI 做独立源码预检：
 
 ```bash
-wp --json validate ./Page.vue --type page
-wp --json validate ./MetricCard.vue --type component
+wp --json page validate <page_id> --mode content --source-file ./Page.vue
+wp --json component validate <component_id> --mode content --source-file ./MetricCard.vue
 ```
 
 `validate` 是诊断，不是写入；它通过后仍需遵守目标接口的版本、草稿和异步任务约束。
@@ -93,7 +93,6 @@ wp page source <page_id>
 # 组件、资源、主题和样式
 wp component list
 wp component get <component_id>
-wp component draft <component_id>
 wp asset list
 wp theme list
 wp theme get <theme_id>
@@ -101,7 +100,6 @@ wp style list
 wp style get <style_id>
 
 # 页面截图；默认写入 page-<page_id>-v<version>.png
-wp screenshot <page_id> --output .tmp/page.png
 wp page screenshot <page_id> --output .tmp/page.png
 ```
 
@@ -113,9 +111,9 @@ wp page screenshot <page_id> --output .tmp/page.png
 
 ```bash
 # 轻量业务对象
-wp project create --name "季度汇报" --description "2026 Q3"
-wp page update <page_id> --title "新标题" --idempotency-key <key>
-wp component update <component_id> --name "指标卡" --summary "展示核心指标" --idempotency-key <key>
+wp project create --payload-file project.json
+wp page update <page_id> --payload-file page.json
+wp component update <component_id> --payload-file component.json
 
 # 页面/组件源码创建：完整 Vue SFC 放在本地文件中
 wp page create --project-id <project_id> --name "概览" --file ./Page.vue
@@ -126,13 +124,13 @@ wp component create --name "指标卡" --import-name MetricCard --file ./MetricC
 
 ```bash
 wp page create --project-id <project_id> --name "概览" --file ./Page.vue --no-wait
-wp job mutation get <job_id> --wait --timeout 60
+wp job wait <job_id> --timeout 60
 ```
 
 只接受平台返回的 `pending | running | succeeded | failed | canceled` 终态语义。`succeeded` 后再读取最新对象或截图；`failed` 时保留 `code`、错误消息和诊断摘要。只有平台明确该任务可人工重试时才执行：
 
 ```bash
-wp job mutation retry <job_id> --idempotency-key <retry-key>
+wp job retry <job_id> --idempotency-key <retry-key>
 ```
 
 版本、草稿 hash、权限或参数冲突不能靠原命令盲重试；先重新读取当前对象和指南。
@@ -145,6 +143,7 @@ CLI 的 `archive` 命令是可审计的归档语义，不是永久删除：
 wp page archive <page_id>
 wp component archive <component_id>
 wp asset archive <asset_id>
+wp page archive --ids-file page-ids.json --yes
 ```
 
 默认保留交互确认。只有用户已经明确授权当前归档动作时，才可以追加 `--yes`；不要把 `--yes` 当作 Agent 的默认参数。CLI 不提供永久删除、跨工作空间写入、直接数据库/Runtime/Chromium 访问或 Build 产物下载。
@@ -157,10 +156,11 @@ wp asset archive <asset_id>
 | 选择工作空间 | 列出并验证空间 | `wp workspace list`、`wp workspace use <id>` |
 | 了解可执行命令 | 读取当前命令帮助 | `wp --help`、`wp <group> --help` |
 | 读页面源码 | 先读元数据，再读源码 | `wp page get <id>`、`wp page source <id>` |
-| 预检本地源码 | 指定实体类型 | `wp validate <file> --type page\|component` |
+| 读取平台规范 | 先读取 standards 和 guide | `wp standards page`、`wp guide list` |
+| 校验实体源码 | 指定实体和候选模式 | `wp page validate <id>`、`wp component validate <id>` |
 | 创建页面/组件 | 先读 Skill 约束、项目基线和子命令帮助 | `wp page create ...`、`wp component create ...` |
-| 等待重任务 | 查询并保留 Job 结果 | `wp job mutation get <id> --wait` |
-| 视觉确认 | 获取最新版本截图 | `wp screenshot <page_id> -o <file>` |
+| 等待重任务 | 查询并保留 Job 结果 | `wp job wait <id>` |
+| 视觉确认 | 获取最新版本截图 | `wp page screenshot <page_id> -o <file>` |
 | 轻量元数据更新 | 提供幂等键 | `wp page update ...`、`wp component update ...` |
 | 归档 | 保留确认 | `wp <resource> archive <id>` |
 

@@ -1,12 +1,11 @@
-"""文件功能：提供 Mutation Job 查询、取消与人工重试命令。"""
+"""文件功能：提供统一的异步 Mutation Job 查询、等待、取消与重试命令。"""
 
 from __future__ import annotations
 
 import click
 
-from wp.client import ApiClient, ApiClientError
-from wp.config import get_profile, load_config
-from wp.formatter import print_error, print_json
+from wp.client import ApiClientError
+from wp.commands.common import get_client, handle_api_error, output_result
 
 
 @click.group("job")
@@ -14,58 +13,52 @@ def job_group() -> None:
     """异步任务管理。"""
 
 
-@job_group.group("mutation")
-def mutation_group() -> None:
-    """Mutation Job 管理。"""
-
-
-def _client(ctx: click.Context) -> ApiClient:
-    """按当前 CLI 上下文创建共享 API Client。"""
-
-    profile = get_profile(load_config(), ctx.obj.get("profile"))
-    return ApiClient(profile, workspace_id=ctx.obj.get("workspace_id"))
-
-
-@mutation_group.command("get")
+@job_group.command("get")
 @click.argument("job_id")
-@click.option("--wait", is_flag=True, help="持续轮询直到任务终态")
-@click.option("--timeout", default=60.0, show_default=True, type=float, help="等待超时秒数")
 @click.pass_context
-def get_mutation_job_cmd(ctx: click.Context, job_id: str, wait: bool, timeout: float) -> None:
-    """查询 Mutation Job；可选择等待 pending/running 收敛。"""
+def get_job_cmd(ctx: click.Context, job_id: str) -> None:
+    """查询 Mutation Job。"""
 
     try:
-        client = _client(ctx)
-        result = client.poll_mutation_job(job_id, timeout_seconds=timeout) if wait else client.get_mutation_job(job_id)
-        print_json(result)
+        output_result(ctx, get_client(ctx).get_mutation_job(job_id))
     except ApiClientError as err:
-        print_error(f"查询 Mutation Job 失败: {err.message}", code=err.code, details=err.details)
-        raise SystemExit(1)
+        handle_api_error("查询 Job 失败", err)
 
 
-@mutation_group.command("cancel")
+@job_group.command("wait")
 @click.argument("job_id")
-@click.option("--idempotency-key", help="复用已有幂等键以安全重放同一取消请求")
+@click.option("--timeout", default=120.0, type=float, show_default=True)
 @click.pass_context
-def cancel_mutation_job_cmd(ctx: click.Context, job_id: str, idempotency_key: str | None) -> None:
-    """请求取消 pending 或 running Mutation Job。"""
+def wait_job_cmd(ctx: click.Context, job_id: str, timeout: float) -> None:
+    """等待 Mutation Job 进入终态。"""
 
     try:
-        print_json(_client(ctx).cancel_mutation_job(job_id, idempotency_key=idempotency_key))
+        output_result(ctx, get_client(ctx).poll_mutation_job(job_id, timeout_seconds=timeout))
     except ApiClientError as err:
-        print_error(f"取消 Mutation Job 失败: {err.message}", code=err.code, details=err.details)
-        raise SystemExit(1)
+        handle_api_error("等待 Job 失败", err)
 
 
-@mutation_group.command("retry")
+@job_group.command("cancel")
 @click.argument("job_id")
-@click.option("--idempotency-key", help="复用已有幂等键以安全重放同一人工重试请求")
+@click.option("--idempotency-key")
 @click.pass_context
-def retry_mutation_job_cmd(ctx: click.Context, job_id: str, idempotency_key: str | None) -> None:
-    """为 retryable failed Job 创建一个保留原乐观锁基线的新任务。"""
+def cancel_job_cmd(ctx: click.Context, job_id: str, idempotency_key: str | None) -> None:
+    """取消 pending 或 running Mutation Job。"""
 
     try:
-        print_json(_client(ctx).retry_mutation_job(job_id, idempotency_key=idempotency_key))
+        output_result(ctx, get_client(ctx).cancel_mutation_job(job_id, idempotency_key=idempotency_key))
     except ApiClientError as err:
-        print_error(f"重试 Mutation Job 失败: {err.message}", code=err.code, details=err.details)
-        raise SystemExit(1)
+        handle_api_error("取消 Job 失败", err)
+
+
+@job_group.command("retry")
+@click.argument("job_id")
+@click.option("--idempotency-key")
+@click.pass_context
+def retry_job_cmd(ctx: click.Context, job_id: str, idempotency_key: str | None) -> None:
+    """重试一个明确允许人工重试的失败 Job。"""
+
+    try:
+        output_result(ctx, get_client(ctx).retry_mutation_job(job_id, idempotency_key=idempotency_key))
+    except ApiClientError as err:
+        handle_api_error("重试 Job 失败", err)

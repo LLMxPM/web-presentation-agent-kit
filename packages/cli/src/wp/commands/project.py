@@ -7,6 +7,16 @@ import click
 from wp.client import ApiClient, ApiClientError
 from wp.config import get_profile, load_config
 from wp.formatter import print_error, print_json, print_success, print_table
+from wp.commands.common import (
+    confirm_archive,
+    get_client,
+    handle_api_error,
+    output_result,
+    read_json_file,
+    require_array,
+    require_ids,
+    require_object,
+)
 
 
 @click.group("project")
@@ -77,46 +87,151 @@ def get_project_cmd(ctx: click.Context, project_id: int) -> None:
 
 
 @project_group.command("create")
-@click.option("--name", "-n", required=True, help="项目名称")
+@click.option("--name", "-n", help="项目名称")
 @click.option("--description", "-d", help="项目描述")
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), help="完整项目 JSON 请求体")
 @click.pass_context
-def create_project_cmd(ctx: click.Context, name: str, description: str | None) -> None:
+def create_project_cmd(ctx: click.Context, name: str | None, description: str | None, payload_file: str | None) -> None:
     """创建新项目。"""
 
-    cfg = load_config()
-    profile = get_profile(cfg, ctx.obj.get("profile"))
-    client = ApiClient(profile, workspace_id=ctx.obj.get("workspace_id"))
+    try:
+        if payload_file:
+            payload = require_object(read_json_file(payload_file, label="项目载荷"), label="项目载荷")
+        else:
+            if not name:
+                raise click.UsageError("未使用 --payload-file 时必须提供 --name。")
+            payload = {"name": name, "description": description}
+        output_result(ctx, get_client(ctx).post("/projects", json_data=payload))
+    except ApiClientError as err:
+        handle_api_error("创建项目失败", err)
+
+
+@project_group.command("update")
+@click.argument("project_id", type=int)
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="项目更新 JSON 请求体")
+@click.pass_context
+def update_project_cmd(ctx: click.Context, project_id: int, payload_file: str) -> None:
+    """更新项目元数据或基础配置。"""
 
     try:
-        payload = {"name": name, "description": description}
-        project = client.post("/projects", json_data=payload)
-        if ctx.obj.get("as_json"):
-            print_json(project)
-            return
-
-        print_success(f"项目创建成功: [bold]{project.get('name')}[/bold] (ID: {project.get('id')})")
+        payload = require_object(read_json_file(payload_file, label="项目更新载荷"), label="项目更新载荷")
+        output_result(ctx, get_client(ctx).patch(f"/projects/{project_id}", json_data=payload))
     except ApiClientError as err:
-        print_error(f"创建项目失败: {err.message}", code=err.code)
-        raise SystemExit(1)
+        handle_api_error("更新项目失败", err)
+
+
+@project_group.group("configuration")
+def project_configuration_group() -> None:
+    """项目结构化展示配置。"""
+
+
+@project_configuration_group.command("get")
+@click.argument("project_id", type=int)
+@click.pass_context
+def get_project_configuration_cmd(ctx: click.Context, project_id: int) -> None:
+    """获取项目配置。"""
+
+    try:
+        output_result(ctx, get_client(ctx).get(f"/projects/{project_id}/configuration"))
+    except ApiClientError as err:
+        handle_api_error("获取项目配置失败", err)
+
+
+@project_configuration_group.command("update")
+@click.argument("project_id", type=int)
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="项目配置 JSON 请求体")
+@click.pass_context
+def update_project_configuration_cmd(ctx: click.Context, project_id: int, payload_file: str) -> None:
+    """更新项目展示配置。"""
+
+    try:
+        payload = require_object(read_json_file(payload_file, label="项目配置载荷"), label="项目配置载荷")
+        output_result(ctx, get_client(ctx).put(f"/projects/{project_id}/configuration", json_data=payload))
+    except ApiClientError as err:
+        handle_api_error("更新项目配置失败", err)
+
+
+@project_group.group("route")
+def project_route_group() -> None:
+    """项目路由树。"""
+
+
+@project_route_group.command("get")
+@click.argument("project_id", type=int)
+@click.pass_context
+def get_project_route_cmd(ctx: click.Context, project_id: int) -> None:
+    """获取项目路由树。"""
+
+    try:
+        output_result(ctx, get_client(ctx).get(f"/projects/{project_id}/route-tree"))
+    except ApiClientError as err:
+        handle_api_error("获取项目路由树失败", err)
+
+
+@project_route_group.command("replace")
+@click.argument("project_id", type=int)
+@click.option("--route-file", type=click.Path(exists=True, dir_okay=False), required=True, help="完整路由树 JSON 文件")
+@click.pass_context
+def replace_project_route_cmd(ctx: click.Context, project_id: int, route_file: str) -> None:
+    """整体替换项目路由树。"""
+
+    try:
+        payload = require_object(read_json_file(route_file, label="路由树"), label="路由树")
+        output_result(ctx, get_client(ctx).put(f"/projects/{project_id}/route-tree", json_data=payload))
+    except ApiClientError as err:
+        handle_api_error("替换项目路由树失败", err)
+
+
+@project_group.command("apply-style")
+@click.argument("project_id", type=int)
+@click.option("--style-id", type=int, required=True)
+@click.pass_context
+def apply_project_style_cmd(ctx: click.Context, project_id: int, style_id: int) -> None:
+    """将样式方案应用到项目。"""
+
+    try:
+        output_result(ctx, get_client(ctx).post(f"/projects/{project_id}/apply-style", json_data={"style_id": style_id}))
+    except ApiClientError as err:
+        handle_api_error("应用项目样式失败", err)
+
+
+@project_group.group("build-assets")
+def project_build_assets_group() -> None:
+    """项目构建额外资源配置，不启动构建。"""
+
+
+@project_build_assets_group.command("update")
+@click.argument("project_id", type=int)
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True)
+@click.pass_context
+def update_project_build_assets_cmd(ctx: click.Context, project_id: int, payload_file: str) -> None:
+    """更新项目构建额外资源配置。"""
+
+    try:
+        payload = require_object(read_json_file(payload_file, label="构建资源配置"), label="构建资源配置")
+        output_result(ctx, get_client(ctx).put(f"/projects/{project_id}/build-assets", json_data=payload))
+    except ApiClientError as err:
+        handle_api_error("更新项目构建资源配置失败", err)
 
 
 @project_group.command("archive")
-@click.argument("project_id", type=int)
+@click.argument("project_id", type=int, required=False)
+@click.option("--ids-file", type=click.Path(exists=True, dir_okay=False), help="批量归档 ID JSON 数组")
 @click.option("--yes", "-y", is_flag=True, help="跳过确认直接归档")
 @click.pass_context
-def archive_project_cmd(ctx: click.Context, project_id: int, yes: bool) -> None:
+def archive_project_cmd(ctx: click.Context, project_id: int | None, ids_file: str | None, yes: bool) -> None:
     """归档项目。"""
 
-    if not yes and not click.confirm(f"确定要归档项目 ID {project_id} 吗？"):
-        return
-
-    cfg = load_config()
-    profile = get_profile(cfg, ctx.obj.get("profile"))
-    client = ApiClient(profile, workspace_id=ctx.obj.get("workspace_id"))
-
     try:
-        client.delete(f"/projects/{project_id}")
-        print_success(f"项目 ID {project_id} 已成功归档。")
+        client = get_client(ctx)
+        if ids_file:
+            ids = require_ids(read_json_file(ids_file, label="归档 ID"))
+            confirm_archive(ids, yes=yes, label="项目")
+            output_result(ctx, client.post("/projects/batch-archive", json_data={"ids": ids}))
+            return
+        if project_id is None:
+            raise click.UsageError("必须提供 project_id 或 --ids-file。")
+        confirm_archive([project_id], yes=yes, label="项目")
+        output_result(ctx, client.post(f"/projects/{project_id}/archive"))
     except ApiClientError as err:
-        print_error(f"归档项目失败: {err.message}", code=err.code)
-        raise SystemExit(1)
+        handle_api_error("归档项目失败", err)

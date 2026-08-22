@@ -22,7 +22,7 @@ def test_screenshot_command_help() -> None:
     """测试 screenshot 命令帮助信息。"""
 
     runner = CliRunner()
-    result = runner.invoke(main, ["screenshot", "--help"])
+    result = runner.invoke(main, ["page", "screenshot", "--help"])
     assert result.exit_code == 0
     assert "获取指定页面的最新截图" in result.output
 
@@ -40,7 +40,7 @@ def test_screenshot_command_success(tmp_path: Path) -> None:
     mock_client.get_latest_page_screenshot.return_value = (fake_meta, fake_img_bytes)
 
     with patch("wp.commands.screenshot.ApiClient", return_value=mock_client):
-        result = runner.invoke(main, ["screenshot", "42", "--output", str(output_file)])
+        result = runner.invoke(main, ["page", "screenshot", "42", "--output", str(output_file)])
 
     assert result.exit_code == 0
     assert output_file.exists()
@@ -62,7 +62,7 @@ def test_screenshot_command_json_mode(tmp_path: Path) -> None:
     mock_client.get_latest_page_screenshot.return_value = (fake_meta, fake_img_bytes)
 
     with patch("wp.commands.screenshot.ApiClient", return_value=mock_client):
-        result = runner.invoke(main, ["--json", "screenshot", "10", "--output", str(output_file)])
+        result = runner.invoke(main, ["--json", "page", "screenshot", "10", "--output", str(output_file)])
 
     assert result.exit_code == 0
     assert output_file.exists()

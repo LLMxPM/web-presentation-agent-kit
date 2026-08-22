@@ -112,3 +112,38 @@ def test_guides_detail_and_pending_poll_paths(monkeypatch) -> None:
         "/api/v1/jobs/mutations/job-1",
     ]
     client.close()
+
+
+def test_typed_capability_helpers_use_canonical_external_paths() -> None:
+    """验证新增 typed helper 不绕过 /api/v1 且保持请求体结构。"""
+
+    paths: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        paths.append(request.url.path)
+        return httpx.Response(200, json={"ok": True})
+
+    client = ApiClient("https://backend.test", token="pat_secret", workspace_id=9)
+    client.client.close()
+    client.client = httpx.Client(base_url=client.endpoint, transport=httpx.MockTransport(handler))
+
+    assert client.get_standard("page")["ok"] is True
+    assert client.list_runtime_kit()["ok"] is True
+    assert client.get_runtime_kit_item("Export.v1")["ok"] is True
+    assert client.list_fonts()["ok"] is True
+    assert client.validate_entity({"entity_type": "page", "entity_id": 1, "mode": "current"})["ok"] is True
+    assert client.copy_page(1, {"target_project_id": 2})["ok"] is True
+    assert client.create_component({"workspace_id": 9, "name": "Card"})["ok"] is True
+    assert client.update_component_metadata_async({"component_id": 3, "name": "Card"})["ok"] is True
+
+    assert paths == [
+        "/api/v1/standards/page",
+        "/api/v1/runtime-kit",
+        "/api/v1/runtime-kit/Export.v1",
+        "/api/v1/fonts",
+        "/api/v1/validate/entity",
+        "/api/v1/pages/1/copy",
+        "/api/v1/components",
+        "/api/v1/jobs/mutations/components/metadata",
+    ]
+    client.close()

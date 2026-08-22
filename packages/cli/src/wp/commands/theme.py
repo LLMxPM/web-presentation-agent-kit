@@ -7,6 +7,7 @@ import click
 from wp.client import ApiClient, ApiClientError
 from wp.config import get_profile, load_config
 from wp.formatter import print_error, print_json, print_success, print_table
+from wp.commands.common import confirm_archive, get_client, handle_api_error, output_result, read_json_file, require_ids, require_object
 
 
 @click.group("theme")
@@ -69,43 +70,70 @@ def get_theme_cmd(ctx: click.Context, theme_id: int) -> None:
 
 
 @theme_group.command("create")
-@click.option("--key", "-k", required=True, help="主题唯一标识 (例如 light-corporate)")
-@click.option("--name", "-n", required=True, help="主题名称")
+@click.option("--key", "-k", help="主题唯一标识 (例如 light-corporate)")
+@click.option("--name", "-n", help="主题名称")
 @click.option("--description", "-d", help="主题描述")
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), help="完整主题 JSON 请求体")
 @click.pass_context
-def create_theme_cmd(ctx: click.Context, key: str, name: str, description: str | None) -> None:
+def create_theme_cmd(ctx: click.Context, key: str | None, name: str | None, description: str | None, payload_file: str | None) -> None:
     """创建新主题。"""
 
-    cfg = load_config()
-    profile = get_profile(cfg, ctx.obj.get("profile"))
-    client = ApiClient(profile, workspace_id=ctx.obj.get("workspace_id"))
+    try:
+        if payload_file:
+            payload = require_object(read_json_file(payload_file, label="主题创建载荷"), label="主题创建载荷")
+        else:
+            if not key or not name:
+                raise click.UsageError("未使用 --payload-file 时必须提供 --key 和 --name。")
+            payload = {"key": key, "name": name, "description": description}
+        output_result(ctx, get_client(ctx).post("/themes", json_data=payload))
+    except ApiClientError as err:
+        handle_api_error("创建主题失败", err)
+
+
+@theme_group.command("update")
+@click.argument("theme_id", type=int)
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True)
+@click.pass_context
+def update_theme_cmd(ctx: click.Context, theme_id: int, payload_file: str) -> None:
+    """更新主题名称、描述和色板。"""
 
     try:
-        payload = {"key": key, "name": name, "description": description}
-        theme = client.post("/themes", json_data=payload)
-        print_success(f"主题创建成功！主题 ID: [bold]{theme.get('id')}[/bold] (Key: {theme.get('key')})")
+        output_result(ctx, get_client(ctx).patch(f"/themes/{theme_id}", json_data=require_object(read_json_file(payload_file, label="主题更新载荷"), label="主题更新载荷")))
     except ApiClientError as err:
-        print_error(f"创建主题失败: {err.message}", code=err.code)
-        raise SystemExit(1)
+        handle_api_error("更新主题失败", err)
+
+
+@theme_group.command("copy")
+@click.argument("theme_id", type=int)
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True)
+@click.pass_context
+def copy_theme_cmd(ctx: click.Context, theme_id: int, payload_file: str) -> None:
+    """复制主题。"""
+
+    try:
+        output_result(ctx, get_client(ctx).post(f"/themes/{theme_id}/copy", json_data=require_object(read_json_file(payload_file, label="主题复制载荷"), label="主题复制载荷")))
+    except ApiClientError as err:
+        handle_api_error("复制主题失败", err)
 
 
 @theme_group.command("archive")
-@click.argument("theme_id", type=int)
+@click.argument("theme_id", type=int, required=False)
+@click.option("--ids-file", type=click.Path(exists=True, dir_okay=False))
 @click.option("--yes", "-y", is_flag=True, help="跳过确认直接归档")
 @click.pass_context
-def archive_theme_cmd(ctx: click.Context, theme_id: int, yes: bool) -> None:
+def archive_theme_cmd(ctx: click.Context, theme_id: int | None, ids_file: str | None, yes: bool) -> None:
     """归档主题。"""
 
-    if not yes and not click.confirm(f"确定要归档主题 ID {theme_id} 吗？"):
-        return
-
-    cfg = load_config()
-    profile = get_profile(cfg, ctx.obj.get("profile"))
-    client = ApiClient(profile, workspace_id=ctx.obj.get("workspace_id"))
-
     try:
-        client.delete(f"/themes/{theme_id}")
-        print_success(f"主题 ID {theme_id} 已成功归档。")
+        client = get_client(ctx)
+        if ids_file:
+            ids = require_ids(read_json_file(ids_file, label="归档 ID"))
+            confirm_archive(ids, yes=yes, label="主题")
+            output_result(ctx, client.post("/themes/batch-archive", json_data={"ids": ids}))
+            return
+        if theme_id is None:
+            raise click.UsageError("必须提供 theme_id 或 --ids-file。")
+        confirm_archive([theme_id], yes=yes, label="主题")
+        output_result(ctx, client.post(f"/themes/{theme_id}/archive"))
     except ApiClientError as err:
-        print_error(f"归档主题失败: {err.message}", code=err.code)
-        raise SystemExit(1)
+        handle_api_error("归档主题失败", err)

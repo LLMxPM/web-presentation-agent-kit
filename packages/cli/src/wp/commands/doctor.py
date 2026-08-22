@@ -27,7 +27,7 @@ def doctor_cmd(ctx: click.Context) -> None:
     endpoint = profile.endpoint.rstrip("/")
     health_status = "[red]不可达[/red]"
     try:
-        r = httpx.get(f"{endpoint}/healthz", timeout=5.0)
+        r = httpx.get(f"{endpoint}/api/v1/system/health", timeout=5.0)
         if r.status_code == 200:
             health_status = "[green]在线[/green]"
     except Exception:
@@ -37,7 +37,7 @@ def doctor_cmd(ctx: click.Context) -> None:
     # 3. PAT 凭证检测
     token_status = "[yellow]未配置[/yellow]"
     if profile.token:
-        token_status = f"[green]已配置[/green] ({profile.token[:12]}...)"
+        token_status = "[green]已配置[/green]"
     diagnostics.append(["访问令牌 (PAT)", token_status, "[green]OK[/green]" if profile.token else "[yellow]待配置[/yellow]"])
 
     # 4. API 连通与权限校验

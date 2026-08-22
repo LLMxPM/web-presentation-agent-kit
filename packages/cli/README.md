@@ -27,15 +27,17 @@ wp profile list
 wp profile use production
 
 # 常用操作
+wp system health
 wp project list
+wp project configuration get <project_id>
 wp page list --project-id <project_id>
-wp component list
-wp asset list
+wp page dependencies <page_id>
+wp component list --scope suggested --project-id <project_id>
+wp asset content get <asset_id>
 wp theme list
 wp style list
-wp validate <page_or_component.vue>
-wp page update <page_id> --title "新标题"
-wp job mutation get <job_id> --wait
+wp --json guide list
+wp job wait <job_id>
 ```
 
-Build External API 尚未冻结，CLI 不提供构建和产物下载命令。
+复杂写入参数使用 `--payload-file`、`--edits-file`、`--content-file`、`--route-file` 和 `--ids-file`。Build、产物下载、Agent 运行、图片能力、Restore 和 MCP 不属于当前 CLI。

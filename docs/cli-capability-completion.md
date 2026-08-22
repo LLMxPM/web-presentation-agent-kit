@@ -1,15 +1,55 @@
 # CLI External API v1 能力矩阵
 
-CLI 只暴露面向用户可直接执行的资源化命令，不把 Backend operation 索引直接映射为 CLI 子命令；External API 契约仍以 Backend 为事实源。
+当前 CLI 按首版本地开发契约实现，不提供旧命令、旧参数或兼容层。Backend External API 是权限、Schema、错误码和任务状态的唯一事实源。
 
-| 能力 | CLI | External API |
-| --- | --- | --- |
-| 页面安全元数据 | `wp page update` | `PATCH /pages/{id}` |
-| 组件安全元数据 | `wp component update` | `PATCH /components/{id}` |
-| Mutation 查询 | `wp job mutation get` | `GET /jobs/mutations/{id}` |
-| Mutation 取消 | `wp job mutation cancel` | `POST /jobs/mutations/{id}/cancel` |
-| Mutation 人工重试 | `wp job mutation retry` | `POST /jobs/mutations/{id}/retry` |
+## 命令矩阵
 
-所有逻辑写操作允许传入 `--idempotency-key`；自动生成时客户端在 `_client.idempotency_key` 中回显。轮询只识别 `pending | running | succeeded | failed | canceled`。
+| 资源 | CLI 命令 |
+| --- | --- |
+| 系统 | `wp system version`, `wp system health` |
+| 标准 | `wp standards page`, `wp standards component` |
+| 指南 | `wp guide list`, `wp guide get <operation>` |
+| Runtime Kit | `wp runtime-kit list`, `wp runtime-kit get <item>` |
+| 字体 | `wp font list` |
+| 项目 | `list`, `get`, `create`, `update`, `archive`, `configuration get/update`, `route get/replace`, `apply-style`, `build-assets update` |
+| 页面 | `list`, `get`, `create`, `copy`, `update`, `source`, `edit`, `version list/get`, `dependencies`, `validate`, `screenshot`, `archive` |
+| 组件 | `list`, `get`, `create`, `update`, `edit`, `version list/get`, `dependencies`, `validate`, `publish`, `archive` |
+| 资源 | `list`, `get`, `create`, `upload`, `update`, `copy`, `content get/update/preview`, `tags list`, `archive` |
+| 主题 | `list`, `get`, `create`, `update`, `copy`, `archive` |
+| 样式 | `list`, `get`, `create`, `update`, `copy`, `archive` |
+| Mutation Job | `wp job get`, `wait`, `cancel`, `retry` |
 
-Build 与产物下载契约尚未冻结，因此不属于 agent-kit 支持范围，后续需在主仓冻结持久化 Worker、取消协议和 PAT 交付语义后另行设计。
+## 文件参数
+
+复杂参数不通过长命令行字符串拼接：
+
+- `--payload-file`：完整 JSON 请求对象。
+- `--edits-file`：源码结构化编辑数组。
+- `--preview-schema-file`：Preview Schema JSON 对象。
+- `--route-file`：完整项目路由树 JSON 对象。
+- `--content-file`：UTF-8 原始文本内容。
+- `--ids-file`：批量归档用的正整数数组。
+
+示例：
+
+```bash
+wp --workspace 1 project configuration update 10 --payload-file configuration.json
+wp page edit 20 --base-version-no 3 --edits-file edits.json
+wp asset content preview 30 --content-file diagram.svg
+wp component update 40 --payload-file component-metadata.json
+wp page archive --ids-file page-ids.json --yes
+```
+
+页面和组件创建、源码编辑、组件复杂元数据更新默认等待 Mutation Job 终态；使用 `--no-wait` 只返回 Job，再使用 `wp job wait <job_id>` 轮询。
+
+## 明确不支持
+
+当前 CLI 不提供：
+
+- Agent Session/Run/HITL 和动态工具披露；
+- 图片生成与图片识别；
+- Build 任务、构建状态和产物下载；
+- 永久删除和 Restore；
+- MCP Server。
+
+校验、工作空间隔离、PAT、Scope、幂等键和乐观锁均由主仓 External API 最终执行。
