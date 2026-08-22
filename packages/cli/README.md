@@ -34,7 +34,6 @@ wp asset list
 wp theme list
 wp style list
 wp validate <page_or_component.vue>
-wp guide page.update
 wp page update <page_id> --title "新标题"
 wp job mutation get <job_id> --wait
 ```

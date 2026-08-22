@@ -51,7 +51,7 @@ CLI 能力补齐实施文档：[docs/cli-capability-completion.md](docs/cli-capa
 ## 边界
 
 1. Backend 是权限、工作空间隔离、业务校验和异步任务状态的最终事实源；API 语义以主仓 [External Agent API v1 契约](https://github.com/LLMxPM/web-presentation/blob/main/docs/developer/reference/external-agent-api.md) 为准。
-2. CLI 和 Skill 不复制 Backend 内部 AI `tool_specs.py`，只消费 `/api/v1/guides`、`/api/v1/standards/*` 和资源接口。
+2. CLI 和 Skill 不复制 Backend 内部 AI `tool_specs.py`；CLI 只暴露面向用户可直接执行的资源化命令，平台契约由主仓 External API 文档维护。
 3. 写操作必须携带幂等语义；页面、组件和截图等重任务通过 Backend 已有任务接口执行。
 4. Build External API 尚未冻结，本期 CLI、共享客户端和 Skill 均不提供构建或产物下载能力。
 5. PAT 不得进入 CLI 输出、异常消息、日志或 telemetry。

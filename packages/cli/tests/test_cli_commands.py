@@ -27,7 +27,7 @@ def test_cli_help() -> None:
     assert "component" in result.output
     assert "asset" in result.output
     assert "build" not in result.output
-    assert "guide" in result.output
+    assert "guide" not in result.output
     assert "job" in result.output
     assert "validate" in result.output
     assert "doctor" in result.output

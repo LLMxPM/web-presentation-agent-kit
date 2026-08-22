@@ -1,10 +1,9 @@
 # CLI External API v1 能力矩阵
 
-CLI 以 Backend `/api/v1/guides` 为契约事实源，不复制内部 AI 工具 Schema。
+CLI 只暴露面向用户可直接执行的资源化命令，不把 Backend operation 索引直接映射为 CLI 子命令；External API 契约仍以 Backend 为事实源。
 
 | 能力 | CLI | External API |
 | --- | --- | --- |
-| Guides 索引/详情 | `wp guide [operation_key]` | `GET /guides[/{operation_key}]` |
 | 页面安全元数据 | `wp page update` | `PATCH /pages/{id}` |
 | 组件安全元数据 | `wp component update` | `PATCH /components/{id}` |
 | Mutation 查询 | `wp job mutation get` | `GET /jobs/mutations/{id}` |

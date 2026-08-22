@@ -7,7 +7,7 @@ description: Use the web-presentation External API v1 through the wp CLI to plan
 
 这是一个面向演示页面创作的 CLI Skill。它指导 Agent 如何把用户的内容目标转化为当前工作空间内可运行、可校验、可复用的页面和组件；不把 Web Presentation 当作普通文件系统、自由执行代码的环境或通用网页脚手架。
 
-本 Skill 的内容与构图约束是 Skill 自己的工作方法。平台操作指南、校验结果和公开能力是执行时的事实来源，但不改变本 Skill 的组织方式。需要确认 CLI 参数时读取 [CLI 调用参考](./references/cli-usage.md)，复杂操作以 `wp guide` 和当前 CLI 帮助为准。
+本 Skill 的内容与构图约束是 Skill 自己的工作方法。平台校验结果和公开能力是执行时的事实来源，但不改变本 Skill 的组织方式。需要确认 CLI 参数时读取 [CLI 调用参考](./references/cli-usage.md)，具体可执行命令以当前 CLI 帮助为准。
 
 ## CLI 最小入口
 
@@ -24,7 +24,6 @@ wp --json --workspace <workspace_id> project list
 wp whoami
 wp workspace list
 wp workspace use <workspace_id>
-wp guide
 ```
 
 没有明确唯一工作空间、目标对象 ID 或当前版本基线时，不执行写入。自动化场景优先使用 `--json`，不要依赖表格文案解析。
@@ -151,7 +150,7 @@ Web Presentation 的页面是固定尺寸的演示画布，不是可以随着内
 
 ### 2. 读取基线
 
-读取目标项目、页面或组件的最新元数据、配置、源码、版本、依赖、主题、样式和相关资源。复杂操作先用 `wp guide` 查询 operation 的参数、前置条件、幂等要求、副作用和错误恢复方式。
+读取目标项目、页面或组件的最新元数据、配置、源码、版本、依赖、主题、样式和相关资源。复杂操作先查看当前 CLI 子命令帮助、项目约束和目标对象基线。
 
 不要仅凭名称推断关联，不要使用无 ID 的“当前页面”或“当前项目”，不要基于旧源码、旧版本或历史截图写入。
 

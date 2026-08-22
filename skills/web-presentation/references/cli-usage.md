@@ -1,6 +1,6 @@
 # `wp` CLI 调用参考
 
-本参考只记录 Agent 调用 CLI 的稳定方式和工作流检查点。具体参数以当前安装版本的 `wp --help`、子命令帮助和平台 `/api/v1/guides` 返回为准；如果帮助与本文不一致，以运行结果为准。
+本参考只记录 Agent 调用 CLI 的稳定方式和工作流检查点。具体参数以当前安装版本的 `wp --help` 和子命令帮助为准；如果帮助与本文不一致，以运行结果为准。Backend `/api/v1/guides` 是平台契约接口，不是当前 CLI 的命令入口。
 
 ## 运行 CLI
 
@@ -71,14 +71,6 @@ wp --json page get <page_id>
 wp --json job mutation get <job_id> --wait
 ```
 
-需要确定复杂操作的请求字段、前置条件、幂等要求或错误恢复时，查询平台发布的操作手册：
-
-```bash
-wp guide
-wp guide page.create
-wp guide page.update
-```
-
 页面或组件源码任务前先遵守 Skill 中的内容、构图和 Runtime Kit 约束，再使用 CLI 做独立源码预检：
 
 ```bash
@@ -117,7 +109,7 @@ wp page screenshot <page_id> --output .tmp/page.png
 
 ## 写入命令和异步任务
 
-先读目标对象和操作手册，再执行最小范围写入。当前 CLI 常用写入形态如下：
+先读目标对象和当前 CLI 子命令帮助，再执行最小范围写入。当前 CLI 常用写入形态如下：
 
 ```bash
 # 轻量业务对象
@@ -163,10 +155,10 @@ wp asset archive <asset_id>
 | --- | --- | --- |
 | 确认身份和连通性 | 检查 Profile、PAT、空间 | `wp doctor`、`wp whoami` |
 | 选择工作空间 | 列出并验证空间 | `wp workspace list`、`wp workspace use <id>` |
-| 了解可用操作 | 查索引，再查精确 Schema | `wp guide`、`wp guide <operation_key>` |
+| 了解可执行命令 | 读取当前命令帮助 | `wp --help`、`wp <group> --help` |
 | 读页面源码 | 先读元数据，再读源码 | `wp page get <id>`、`wp page source <id>` |
 | 预检本地源码 | 指定实体类型 | `wp validate <file> --type page\|component` |
-| 创建页面/组件 | 先读 Skill 约束、项目基线和操作手册 | `wp page create ...`、`wp component create ...` |
+| 创建页面/组件 | 先读 Skill 约束、项目基线和子命令帮助 | `wp page create ...`、`wp component create ...` |
 | 等待重任务 | 查询并保留 Job 结果 | `wp job mutation get <id> --wait` |
 | 视觉确认 | 获取最新版本截图 | `wp screenshot <page_id> -o <file>` |
 | 轻量元数据更新 | 提供幂等键 | `wp page update ...`、`wp component update ...` |

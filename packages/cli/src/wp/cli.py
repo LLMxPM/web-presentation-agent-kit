@@ -8,7 +8,6 @@ from wp.commands.asset import asset_group
 from wp.commands.auth import login_cmd, logout_cmd, whoami_cmd
 from wp.commands.component import component_group
 from wp.commands.doctor import doctor_cmd
-from wp.commands.guide import guide_cmd
 from wp.commands.job import job_group
 from wp.commands.page import page_group
 from wp.commands.profile import profile_group
@@ -40,7 +39,6 @@ main.add_command(logout_cmd)
 main.add_command(whoami_cmd)
 main.add_command(doctor_cmd)
 main.add_command(validate_cmd)
-main.add_command(guide_cmd)
 main.add_command(screenshot_cmd)
 main.add_command(profile_group)
 
