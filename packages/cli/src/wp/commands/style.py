@@ -81,7 +81,11 @@ def get_style_cmd(ctx: click.Context, style_id: int) -> None:
 @style_group.command("create")
 @click.option("--name", "-n", help="样式方案名称")
 @click.option("--description", "-d", help="样式描述")
-@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), help="完整样式创建 JSON 请求体")
+@click.option(
+    "--payload-file",
+    type=click.Path(exists=True, dir_okay=False),
+    help="完整样式创建 JSON；支持 configuration.presentation 或顶层 page_width 等展示字段",
+)
 @idempotency_key_option
 @click.pass_context
 def create_style_cmd(ctx: click.Context, name: str | None, description: str | None, payload_file: str | None) -> None:

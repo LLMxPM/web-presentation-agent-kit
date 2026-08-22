@@ -51,6 +51,47 @@ def test_project_update_reads_json_payload(tmp_path: Path) -> None:
     assert '"id": 7' in result.output
 
 
+def test_style_create_reads_flat_full_payload(tmp_path: Path) -> None:
+    """样式创建应把包含完整顶层展示字段的 JSON 载荷传给 External API。"""
+
+    payload_file = tmp_path / "style.json"
+    payload = {
+        "key": "flat-style",
+        "name": "完整样式",
+        "description": "CLI 测试",
+        "page_width": 1920,
+        "page_height": 1080,
+        "base_font_size": "18px",
+        "icon_default_stroke_width": 3,
+        "show_pdf_export_button": False,
+        "menu_mode": "bottom-preview",
+        "theme_key": None,
+        "style_spec_markdown": "## 规范",
+    }
+    payload_file.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+    fake_client = MagicMock()
+    fake_client.post.return_value = {"id": 13, "key": "flat-style"}
+    with patch("wp.commands.style.get_client", return_value=fake_client):
+        result = CliRunner().invoke(
+            main,
+            ["--json", "style", "create", "--payload-file", str(payload_file)],
+        )
+
+    assert result.exit_code == 0, result.output
+    fake_client.post.assert_called_once_with("/styles", json_data=payload)
+
+
+def test_style_create_help_describes_full_payload_fields() -> None:
+    """样式创建帮助应说明完整 payload 支持的字段形态。"""
+
+    result = CliRunner().invoke(main, ["style", "create", "--help"])
+
+    assert result.exit_code == 0, result.output
+    assert "configuration.presentation" in result.output
+    assert "page_width" in result.output
+
+
 def test_asset_content_update_reads_raw_text(tmp_path: Path) -> None:
     """资源内容更新应保持 UTF-8 文本原样，不把内容当 JSON 解析。"""
 
