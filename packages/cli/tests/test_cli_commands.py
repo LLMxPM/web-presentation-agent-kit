@@ -63,6 +63,38 @@ def test_page_validate_help_describes_structured_edits() -> None:
         assert text in result.output
 
 
+def test_project_list_filters_archived_projects() -> None:
+    """项目列表默认只请求 active 项目，避免归档项目混入。"""
+
+    fake_client = MagicMock()
+    fake_client.get.return_value = {"items": [], "total": 0}
+
+    with patch("wp.commands.project.ApiClient", return_value=fake_client):
+        result = CliRunner().invoke(main, ["--json", "project", "list"])
+
+    assert result.exit_code == 0, result.output
+    fake_client.get.assert_called_once_with(
+        "/projects",
+        params={"page": 1, "page_size": 20, "status": "active"},
+    )
+
+
+def test_page_list_filters_archived_pages() -> None:
+    """页面列表默认只请求 active 页面，避免归档页面混入。"""
+
+    fake_client = MagicMock()
+    fake_client.get.return_value = {"items": [], "total": 0}
+
+    with patch("wp.commands.page.ApiClient", return_value=fake_client):
+        result = CliRunner().invoke(main, ["--json", "page", "list", "--project-id", "7"])
+
+    assert result.exit_code == 0, result.output
+    fake_client.get.assert_called_once_with(
+        "/projects/7/pages",
+        params={"page": 1, "page_size": 50, "status": "active"},
+    )
+
+
 
 def test_cli_doctor_unconfigured(monkeypatch, tmp_path) -> None:
     """测试在未配置环境时的 doctor 输出。"""

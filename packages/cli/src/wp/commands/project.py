@@ -37,7 +37,7 @@ def list_projects_cmd(ctx: click.Context, page: int, page_size: int, keyword: st
     client = ApiClient(profile, workspace_id=ctx.obj.get("workspace_id"))
 
     try:
-        params = {"page": page, "page_size": page_size}
+        params = {"page": page, "page_size": page_size, "status": "active"}
         if keyword:
             params["keyword"] = keyword
         res = client.get("/projects", params=params)

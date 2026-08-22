@@ -49,7 +49,10 @@ def list_pages_cmd(ctx: click.Context, project_id: int, page: int, page_size: in
     client = ApiClient(profile, workspace_id=ctx.obj.get("workspace_id"))
 
     try:
-        res = client.get(f"/projects/{project_id}/pages", params={"page": page, "page_size": page_size})
+        res = client.get(
+            f"/projects/{project_id}/pages",
+            params={"page": page, "page_size": page_size, "status": "active"},
+        )
         if ctx.obj.get("as_json"):
             print_json(res)
             return
