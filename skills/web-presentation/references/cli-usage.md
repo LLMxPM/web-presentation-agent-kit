@@ -71,6 +71,8 @@ wp --json page get <page_id>
 wp --json job wait <job_id>
 ```
 
+`--json` 用于把支持人类可读表格或代码视图的命令切换为 JSON；创建、更新、校验、任务和能力目录等复杂响应本身默认就是 JSON，不依赖该选项。
+
 页面或组件源码任务前先遵守 Skill 中的内容、构图和 Runtime Kit 约束，再使用 CLI 做独立源码预检：
 
 ```bash
@@ -132,6 +134,8 @@ wp job wait <job_id> --timeout 60
 ```bash
 wp job retry <job_id> --idempotency-key <retry-key>
 ```
+
+所有写命令都会携带幂等键；需要在超时或网络失败后安全重放同一个业务请求时，显式传入 `--idempotency-key <key>`，重放时必须复用同一个 key。不同请求不要复用 key。
 
 版本、草稿 hash、权限或参数冲突不能靠原命令盲重试；先重新读取当前对象和指南。
 

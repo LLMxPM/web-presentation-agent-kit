@@ -5,8 +5,10 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import tempfile
+import time
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 CONFIG_DIR = Path.home() / ".web-presentation"
 CONFIG_FILE = CONFIG_DIR / "config.json"
@@ -40,7 +42,13 @@ def load_config() -> CliConfig:
     try:
         data = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
         return CliConfig.model_validate(data)
-    except Exception:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValidationError):
+        # 配置损坏时先保留现场，避免后续 login/logout 覆盖掉其它 Profile。
+        backup_path = CONFIG_FILE.with_name(f"{CONFIG_FILE.name}.corrupt.{time.time_ns()}")
+        try:
+            CONFIG_FILE.replace(backup_path)
+        except OSError:
+            pass
         return CliConfig()
 
 
@@ -49,12 +57,29 @@ def save_config(config: CliConfig) -> None:
 
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     content = json.dumps(config.model_dump(mode="json"), indent=2, ensure_ascii=False)
-    CONFIG_FILE.write_text(content, encoding="utf-8")
-    if os.name != "nt":
-        try:
-            CONFIG_FILE.chmod(0o600)
-        except Exception:
-            pass
+    temp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=CONFIG_DIR,
+            prefix=".config.",
+            suffix=".tmp",
+            delete=False,
+        ) as temp_file:
+            temp_path = Path(temp_file.name)
+            temp_file.write(content)
+            temp_file.flush()
+            if os.name != "nt":
+                temp_path.chmod(0o600)
+        os.replace(temp_path, CONFIG_FILE)
+        temp_path = None
+    finally:
+        if temp_path is not None:
+            try:
+                temp_path.unlink()
+            except OSError:
+                pass
 
 
 def get_profile(config: CliConfig, profile_name: str | None = None) -> ProfileConfig:

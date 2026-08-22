@@ -18,49 +18,67 @@ def doctor_cmd(ctx: click.Context) -> None:
 
     cfg = load_config()
     profile = get_profile(cfg, ctx.obj.get("profile"))
-    diagnostics = []
+    diagnostics: list[dict[str, str]] = []
 
     # 1. CLI 版本
-    diagnostics.append(["CLI 版本", f"v{wp.__version__}", "[green]正常[/green]"])
+    diagnostics.append({"check": "CLI 版本", "value": f"v{wp.__version__}", "status": "ok"})
 
     # 2. 服务端探活
     endpoint = profile.endpoint.rstrip("/")
-    health_status = "[red]不可达[/red]"
+    health_value = "不可达"
+    health_status = "error"
     try:
         r = httpx.get(f"{endpoint}/api/v1/system/health", timeout=5.0)
         if r.status_code == 200:
-            health_status = "[green]在线[/green]"
-    except Exception:
-        pass
-    diagnostics.append(["Backend 地址", endpoint, health_status])
+            health = r.json()
+            health_data = health if isinstance(health, dict) else {}
+            backend_status = str(health_data.get("status", "unknown"))
+            health_value = (
+                f"{backend_status}（database={health_data.get('database')}, "
+                f"redis={health_data.get('redis')}）"
+            )
+            health_status = "ok" if backend_status == "ok" else "warning"
+        else:
+            health_value = f"HTTP {r.status_code}"
+    except (httpx.RequestError, ValueError) as exc:
+        health_value = str(exc) or health_value
+    diagnostics.append({"check": "Backend 地址", "value": f"{endpoint}：{health_value}", "status": health_status})
 
     # 3. PAT 凭证检测
-    token_status = "[yellow]未配置[/yellow]"
+    token_status = "未配置"
     if profile.token:
-        token_status = "[green]已配置[/green]"
-    diagnostics.append(["访问令牌 (PAT)", token_status, "[green]OK[/green]" if profile.token else "[yellow]待配置[/yellow]"])
+        token_status = "已配置"
+    diagnostics.append(
+        {
+            "check": "访问令牌 (PAT)",
+            "value": token_status,
+            "status": "ok" if profile.token else "warning",
+        }
+    )
 
     # 4. API 连通与权限校验
     if profile.token:
         client = ApiClient(profile)
         try:
             workspaces = client.get("/workspaces")
-            diagnostics.append(["授权工作空间", f"{len(workspaces)} 个可用空间", "[green]通过[/green]"])
+            diagnostics.append({"check": "授权工作空间", "value": f"{len(workspaces)} 个可用空间", "status": "ok"})
         except ApiClientError as err:
-            diagnostics.append(["API 认证", f"认证失败: {err.message}", "[red]失败[/red]"])
+            diagnostics.append({"check": "API 认证", "value": f"认证失败: {err.message}", "status": "error"})
 
         ws_id = profile.default_workspace_id
         if ws_id:
             try:
                 ws = client.get(f"/workspaces/{ws_id}")
-                diagnostics.append(["默认工作空间", f"{ws.get('name')} (ID: {ws_id})", "[green]有效[/green]"])
+                diagnostics.append({"check": "默认工作空间", "value": f"{ws.get('name')} (ID: {ws_id})", "status": "ok"})
             except ApiClientError:
-                diagnostics.append(["默认工作空间", f"访问受限 (ID: {ws_id})", "[red]失效[/red]"])
+                diagnostics.append({"check": "默认工作空间", "value": f"访问受限 (ID: {ws_id})", "status": "error"})
         else:
-            diagnostics.append(["默认工作空间", "未设置", "[yellow]提示: 使用 wp workspace use <id>[/yellow]"])
+            diagnostics.append({"check": "默认工作空间", "value": "未设置，请使用 wp workspace use <id>", "status": "warning"})
 
     if ctx.obj.get("as_json"):
         print_json(diagnostics)
         return
 
-    print_table("CLI 诊断检查报告", ["检查项", "当前状态", "判定结果"], diagnostics)
+    status_labels = {"ok": "正常", "warning": "警告", "error": "失败"}
+    rows = [[item["check"], item["value"], status_labels.get(item["status"], item["status"])] for item in diagnostics]
+    print_table("CLI 诊断检查报告", ["检查项", "当前状态", "判定结果"], rows)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import click
 
+from wp.client import ApiClientError
 from wp.commands.common import get_client, handle_api_error, output_result
 
 
@@ -45,10 +46,8 @@ def runtime_kit_list_cmd(
     }
     try:
         output_result(ctx, get_client(ctx).list_runtime_kit(params=params))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("获取 Runtime Kit 目录失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("获取 Runtime Kit 目录失败", err)
 
 
 @runtime_kit_group.command("get")
@@ -59,10 +58,8 @@ def runtime_kit_get_cmd(ctx: click.Context, item: str) -> None:
 
     try:
         output_result(ctx, get_client(ctx).get_runtime_kit_item(item))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("获取 Runtime Kit 能力失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("获取 Runtime Kit 能力失败", err)
 
 
 @click.group("font")
@@ -83,7 +80,5 @@ def font_list_cmd(ctx: click.Context, page: int, page_size: int, keyword: str | 
         params["keyword"] = keyword
     try:
         output_result(ctx, get_client(ctx).list_fonts(params=params))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("获取字体列表失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("获取字体列表失败", err)

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 # 确保能定位到 cli/src
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
@@ -36,8 +38,13 @@ def test_cli_help() -> None:
 
 
 
-def test_cli_doctor_unconfigured() -> None:
+def test_cli_doctor_unconfigured(monkeypatch, tmp_path) -> None:
     """测试在未配置环境时的 doctor 输出。"""
+
+    monkeypatch.setattr(config_module, "CONFIG_DIR", tmp_path)
+    monkeypatch.setattr(config_module, "CONFIG_FILE", tmp_path / "config.json")
+    health_response = MagicMock(status_code=503)
+    monkeypatch.setattr("wp.commands.doctor.httpx.get", lambda *args, **kwargs: health_response)
 
     runner = CliRunner()
     result = runner.invoke(main, ["doctor"])
@@ -46,14 +53,64 @@ def test_cli_doctor_unconfigured() -> None:
     assert "CLI 版本" in result.output
 
 
-def test_cli_json_mode() -> None:
+def test_cli_json_mode(monkeypatch, tmp_path) -> None:
     """测试全局 --json 选项。"""
+
+    monkeypatch.setattr(config_module, "CONFIG_DIR", tmp_path)
+    monkeypatch.setattr(config_module, "CONFIG_FILE", tmp_path / "config.json")
+    health_response = MagicMock(status_code=503)
+    monkeypatch.setattr("wp.commands.doctor.httpx.get", lambda *args, **kwargs: health_response)
 
     runner = CliRunner()
     result = runner.invoke(main, ["--json", "doctor"])
     assert result.exit_code == 0
-    assert "[" in result.output
-    assert "CLI 版本" in result.output
+    diagnostics = json.loads(result.output)
+    assert diagnostics[0]["check"] == "CLI 版本"
+    assert all("[green]" not in item["value"] for item in diagnostics)
+
+
+def test_page_create_failed_job_returns_nonzero_and_json(tmp_path) -> None:
+    """页面创建任务失败时应保留完整任务 JSON 并返回非零状态。"""
+
+    payload_file = tmp_path / "page.json"
+    payload_file.write_text(
+        json.dumps({"project_id": 1, "name": "失败页面", "source_code": "<template />"}),
+        encoding="utf-8",
+    )
+    fake_client = MagicMock()
+    fake_client.create_page.return_value = {"job_id": "job-1", "status": "pending"}
+    fake_client.poll_mutation_job.return_value = {
+        "job_id": "job-1",
+        "status": "failed",
+        "error": {"code": "CODE_CHECK_FAILED", "message": "代码检查失败"},
+    }
+
+    with patch("wp.commands.page.get_client", return_value=fake_client):
+        result = CliRunner().invoke(
+            main,
+            ["--json", "page", "create", "--payload-file", str(payload_file)],
+        )
+
+    assert result.exit_code == 1
+    assert json.loads(result.output)["status"] == "failed"
+
+
+def test_whoami_uses_identity_endpoint() -> None:
+    """whoami 应调用 External API 的身份接口，而不是工作空间列表接口。"""
+
+    fake_client = MagicMock()
+    fake_client.get.return_value = {
+        "user": {"id": 7, "username": "agent", "role": "member", "status": "active"},
+        "token": {"token_public_id": "pat_public", "scopes": ["workspace:read"]},
+        "workspaces": [{"id": 1, "name": "演示空间", "role": "owner"}],
+    }
+
+    with patch("wp.commands.auth.ApiClient", return_value=fake_client):
+        result = CliRunner().invoke(main, ["--json", "whoami"])
+
+    assert result.exit_code == 0, result.output
+    fake_client.get.assert_called_once_with("/auth/whoami")
+    assert json.loads(result.output)["user"]["username"] == "agent"
 
 
 def test_profile_list_json_does_not_expose_token(monkeypatch, tmp_path) -> None:
@@ -121,3 +178,65 @@ def test_profile_use_rejects_unknown_profile(monkeypatch, tmp_path) -> None:
 
     assert result.exit_code == 1
     assert "PROFILE_NOT_FOUND" in result.output
+
+
+def test_corrupt_config_is_backed_up_before_reset(monkeypatch, tmp_path) -> None:
+    """损坏配置应先备份，不能静默覆盖原始凭证和 Profile。"""
+
+    config_path = tmp_path / "config.json"
+    config_path.write_text("{not-json", encoding="utf-8")
+    monkeypatch.setattr(config_module, "CONFIG_DIR", tmp_path)
+    monkeypatch.setattr(config_module, "CONFIG_FILE", config_path)
+
+    config = load_config()
+
+    assert config.current_profile == "default"
+    backups = list(tmp_path.glob("config.json.corrupt.*"))
+    assert len(backups) == 1
+    assert backups[0].read_text(encoding="utf-8") == "{not-json"
+    assert not config_path.exists()
+
+
+def test_archive_usage_error_is_rendered_without_traceback() -> None:
+    """归档命令缺少目标时应返回 Click 错误，而不是 Python traceback。"""
+
+    result = CliRunner().invoke(main, ["asset", "archive", "--yes"])
+
+    assert result.exit_code != 0
+    assert "必须提供 asset_id 或 --ids-file" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_write_commands_expose_idempotency_key_option() -> None:
+    """所有代表性写命令都应暴露可复用的幂等键选项。"""
+
+    for args in (
+        ["project", "update", "1", "--help"],
+        ["page", "create", "--help"],
+        ["component", "publish", "1", "--help"],
+        ["asset", "update", "1", "--help"],
+        ["theme", "update", "1", "--help"],
+        ["style", "update", "1", "--help"],
+    ):
+        result = CliRunner().invoke(main, args)
+        assert result.exit_code == 0, (args, result.output)
+        assert "--idempotency-key" in result.output
+
+
+def test_command_idempotency_key_is_passed_to_client(monkeypatch, tmp_path) -> None:
+    """验证命令行幂等键会进入共享 Client，而不是只停留在 Click 参数层。"""
+
+    monkeypatch.setattr(config_module, "CONFIG_DIR", tmp_path)
+    monkeypatch.setattr(config_module, "CONFIG_FILE", tmp_path / "config.json")
+    fake_client = MagicMock()
+    fake_client.post.return_value = {"project_id": 1}
+
+    with patch("wp.commands.common.ApiClient", return_value=fake_client) as client_class:
+        result = CliRunner().invoke(
+            main,
+            ["project", "create", "--name", "演示项目", "--idempotency-key", "replay-key"],
+        )
+
+    assert result.exit_code == 0, result.output
+    assert client_class.call_args.kwargs["idempotency_key"] == "replay-key"
+    fake_client.post.assert_called_once_with("/projects", json_data={"name": "演示项目", "description": None})

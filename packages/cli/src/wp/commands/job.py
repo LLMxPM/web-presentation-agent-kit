@@ -5,7 +5,13 @@ from __future__ import annotations
 import click
 
 from wp.client import ApiClientError
-from wp.commands.common import get_client, handle_api_error, output_result
+from wp.commands.common import (
+    get_client,
+    handle_api_error,
+    idempotency_key_option,
+    output_result,
+    require_success_job,
+)
 
 
 @click.group("job")
@@ -33,32 +39,46 @@ def wait_job_cmd(ctx: click.Context, job_id: str, timeout: float) -> None:
     """等待 Mutation Job 进入终态。"""
 
     try:
-        output_result(ctx, get_client(ctx).poll_mutation_job(job_id, timeout_seconds=timeout))
+        result = get_client(ctx).poll_mutation_job(job_id, timeout_seconds=timeout)
+        require_success_job(result, ctx=ctx)
+        output_result(ctx, result)
     except ApiClientError as err:
         handle_api_error("等待 Job 失败", err)
 
 
 @job_group.command("cancel")
 @click.argument("job_id")
-@click.option("--idempotency-key")
+@idempotency_key_option
 @click.pass_context
-def cancel_job_cmd(ctx: click.Context, job_id: str, idempotency_key: str | None) -> None:
+def cancel_job_cmd(ctx: click.Context, job_id: str) -> None:
     """取消 pending 或 running Mutation Job。"""
 
     try:
-        output_result(ctx, get_client(ctx).cancel_mutation_job(job_id, idempotency_key=idempotency_key))
+        output_result(
+            ctx,
+            get_client(ctx).cancel_mutation_job(
+                job_id,
+                idempotency_key=ctx.obj.get("idempotency_key"),
+            ),
+        )
     except ApiClientError as err:
         handle_api_error("取消 Job 失败", err)
 
 
 @job_group.command("retry")
 @click.argument("job_id")
-@click.option("--idempotency-key")
+@idempotency_key_option
 @click.pass_context
-def retry_job_cmd(ctx: click.Context, job_id: str, idempotency_key: str | None) -> None:
+def retry_job_cmd(ctx: click.Context, job_id: str) -> None:
     """重试一个明确允许人工重试的失败 Job。"""
 
     try:
-        output_result(ctx, get_client(ctx).retry_mutation_job(job_id, idempotency_key=idempotency_key))
+        output_result(
+            ctx,
+            get_client(ctx).retry_mutation_job(
+                job_id,
+                idempotency_key=ctx.obj.get("idempotency_key"),
+            ),
+        )
     except ApiClientError as err:
         handle_api_error("重试 Job 失败", err)

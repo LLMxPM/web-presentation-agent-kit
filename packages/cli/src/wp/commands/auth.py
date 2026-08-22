@@ -57,16 +57,41 @@ def whoami_cmd(ctx: click.Context) -> None:
     client = ApiClient(profile, workspace_id=ctx.obj.get("workspace_id"))
 
     try:
-        workspaces = client.get("/workspaces")
+        identity = client.get("/auth/whoami")
+        workspaces = identity.get("workspaces", [])
         if ctx.obj.get("as_json"):
-            print_json({"endpoint": profile.endpoint, "workspaces": workspaces})
+            print_json({"endpoint": profile.endpoint, **identity})
             return
 
-        print_success(f"当前环境: [bold]{profile.endpoint}[/bold]")
+        user = identity.get("user") or {}
+        print_success(
+            f"当前环境: [bold]{profile.endpoint}[/bold]，"
+            f"用户: [bold]{user.get('display_name') or user.get('username') or '-'}[/bold]"
+        )
+        print_table(
+            title="当前身份",
+            columns=["字段", "值"],
+            rows=[
+                ["用户 ID", user.get("id")],
+                ["用户名", user.get("username")],
+                ["角色", user.get("role")],
+                ["状态", user.get("status")],
+            ],
+        )
+        token = identity.get("token") or {}
+        print_table(
+            title="当前 PAT",
+            columns=["字段", "值"],
+            rows=[
+                ["公开 ID", token.get("token_public_id")],
+                ["Scopes", ", ".join(token.get("scopes") or []) or "-"],
+                ["过期时间", token.get("expires_at") or "未设置"],
+            ],
+        )
         print_table(
             title="已授权工作空间",
-            columns=["ID", "空间名称", "所有者 ID", "状态"],
-            rows=[[w["id"], w["name"], w.get("owner_id"), w.get("status")] for w in workspaces],
+            columns=["ID", "空间名称", "成员角色"],
+            rows=[[w["id"], w["name"], w.get("role")] for w in workspaces],
         )
     except ApiClientError as err:
         print_error(f"查询失败: {err.message}", code=err.code)

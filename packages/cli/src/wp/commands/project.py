@@ -11,9 +11,9 @@ from wp.commands.common import (
     confirm_archive,
     get_client,
     handle_api_error,
+    idempotency_key_option,
     output_result,
     read_json_file,
-    require_array,
     require_ids,
     require_object,
 )
@@ -90,6 +90,7 @@ def get_project_cmd(ctx: click.Context, project_id: int) -> None:
 @click.option("--name", "-n", help="项目名称")
 @click.option("--description", "-d", help="项目描述")
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), help="完整项目 JSON 请求体")
+@idempotency_key_option
 @click.pass_context
 def create_project_cmd(ctx: click.Context, name: str | None, description: str | None, payload_file: str | None) -> None:
     """创建新项目。"""
@@ -109,6 +110,7 @@ def create_project_cmd(ctx: click.Context, name: str | None, description: str | 
 @project_group.command("update")
 @click.argument("project_id", type=int)
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="项目更新 JSON 请求体")
+@idempotency_key_option
 @click.pass_context
 def update_project_cmd(ctx: click.Context, project_id: int, payload_file: str) -> None:
     """更新项目元数据或基础配置。"""
@@ -140,6 +142,7 @@ def get_project_configuration_cmd(ctx: click.Context, project_id: int) -> None:
 @project_configuration_group.command("update")
 @click.argument("project_id", type=int)
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="项目配置 JSON 请求体")
+@idempotency_key_option
 @click.pass_context
 def update_project_configuration_cmd(ctx: click.Context, project_id: int, payload_file: str) -> None:
     """更新项目展示配置。"""
@@ -171,6 +174,7 @@ def get_project_route_cmd(ctx: click.Context, project_id: int) -> None:
 @project_route_group.command("replace")
 @click.argument("project_id", type=int)
 @click.option("--route-file", type=click.Path(exists=True, dir_okay=False), required=True, help="完整路由树 JSON 文件")
+@idempotency_key_option
 @click.pass_context
 def replace_project_route_cmd(ctx: click.Context, project_id: int, route_file: str) -> None:
     """整体替换项目路由树。"""
@@ -185,6 +189,7 @@ def replace_project_route_cmd(ctx: click.Context, project_id: int, route_file: s
 @project_group.command("apply-style")
 @click.argument("project_id", type=int)
 @click.option("--style-id", type=int, required=True)
+@idempotency_key_option
 @click.pass_context
 def apply_project_style_cmd(ctx: click.Context, project_id: int, style_id: int) -> None:
     """将样式方案应用到项目。"""
@@ -203,6 +208,7 @@ def project_build_assets_group() -> None:
 @project_build_assets_group.command("update")
 @click.argument("project_id", type=int)
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True)
+@idempotency_key_option
 @click.pass_context
 def update_project_build_assets_cmd(ctx: click.Context, project_id: int, payload_file: str) -> None:
     """更新项目构建额外资源配置。"""
@@ -218,6 +224,7 @@ def update_project_build_assets_cmd(ctx: click.Context, project_id: int, payload
 @click.argument("project_id", type=int, required=False)
 @click.option("--ids-file", type=click.Path(exists=True, dir_okay=False), help="批量归档 ID JSON 数组")
 @click.option("--yes", "-y", is_flag=True, help="跳过确认直接归档")
+@idempotency_key_option
 @click.pass_context
 def archive_project_cmd(ctx: click.Context, project_id: int | None, ids_file: str | None, yes: bool) -> None:
     """归档项目。"""

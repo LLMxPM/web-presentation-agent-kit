@@ -6,10 +6,12 @@ from pathlib import Path
 
 import click
 
+from wp.client import ApiClientError
 from wp.commands.common import (
     confirm_archive,
     get_client,
     handle_api_error,
+    idempotency_key_option,
     output_result,
     read_json_file,
     read_text_file,
@@ -45,10 +47,8 @@ def list_assets_cmd(ctx: click.Context, page: int, page_size: int, asset_type: s
             return
         rows = [[item.get("id"), item.get("name", "-"), item.get("asset_type", "-"), item.get("status", "-")] for item in result.get("items", [])]
         print_table("资源列表", ["ID", "名称", "类型", "状态"], rows)
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("获取资源列表失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("获取资源列表失败", err)
 
 
 @asset_group.command("get")
@@ -59,10 +59,8 @@ def get_asset_cmd(ctx: click.Context, asset_id: int) -> None:
 
     try:
         output_result(ctx, get_client(ctx).get(f"/assets/{asset_id}"))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("获取资源详情失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("获取资源详情失败", err)
 
 
 @asset_group.command("upload")
@@ -70,6 +68,7 @@ def get_asset_cmd(ctx: click.Context, asset_id: int) -> None:
 @click.option("--type", "asset_type", type=click.Choice(ASSET_TYPES), required=True)
 @click.option("--name")
 @click.option("--description")
+@idempotency_key_option
 @click.pass_context
 def upload_asset_cmd(ctx: click.Context, file_path: str, asset_type: str, name: str | None, description: str | None) -> None:
     """上传二进制或图片资源。"""
@@ -83,15 +82,14 @@ def upload_asset_cmd(ctx: click.Context, file_path: str, asset_type: str, name: 
                 data={"asset_type": asset_type, "name": name or path.stem, "description": description},
             )
         output_result(ctx, result)
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("上传资源失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("上传资源失败", err)
 
 
 @asset_group.command("create")
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True)
 @click.option("--content-file", type=click.Path(exists=True, dir_okay=False), help="覆盖 JSON 中 content 的文本文件")
+@idempotency_key_option
 @click.pass_context
 def create_asset_cmd(ctx: click.Context, payload_file: str, content_file: str | None) -> None:
     """创建文本内容资源。"""
@@ -101,10 +99,8 @@ def create_asset_cmd(ctx: click.Context, payload_file: str, content_file: str | 
         payload["content"] = read_text_file(content_file, label="资源内容")
     try:
         output_result(ctx, get_client(ctx).post("/assets/content", json_data=payload))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("创建文本资源失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("创建文本资源失败", err)
 
 
 @asset_group.group("content")
@@ -120,26 +116,23 @@ def get_asset_content_cmd(ctx: click.Context, asset_id: int) -> None:
 
     try:
         output_result(ctx, get_client(ctx).get(f"/assets/{asset_id}/content"))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("读取资源内容失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("读取资源内容失败", err)
 
 
 @asset_content_group.command("update")
 @click.argument("asset_id", type=int)
 @click.option("--content-file", type=click.Path(exists=True, dir_okay=False), required=True)
 @click.option("--change-note")
+@idempotency_key_option
 @click.pass_context
 def update_asset_content_cmd(ctx: click.Context, asset_id: int, content_file: str, change_note: str | None) -> None:
     """写入资源文本内容。"""
 
     try:
         output_result(ctx, get_client(ctx).put(f"/assets/{asset_id}/content", json_data={"content": read_text_file(content_file, label="资源内容"), "change_note": change_note}))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("更新资源内容失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("更新资源内容失败", err)
 
 
 @asset_content_group.command("preview")
@@ -151,10 +144,8 @@ def preview_asset_content_cmd(ctx: click.Context, asset_id: int, content_file: s
 
     try:
         output_result(ctx, get_client(ctx).post(f"/assets/{asset_id}/content/preview", json_data={"content": read_text_file(content_file, label="资源内容")}, idempotent=False))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("预览资源内容失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("预览资源内容失败", err)
 
 
 @asset_group.group("tags")
@@ -171,46 +162,43 @@ def list_asset_tags_cmd(ctx: click.Context, asset_type: str | None) -> None:
     try:
         params = {"asset_type": asset_type} if asset_type else None
         output_result(ctx, get_client(ctx).get("/assets/tags", params=params))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("获取资源标签失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("获取资源标签失败", err)
 
 
 @asset_group.command("update")
 @click.argument("asset_id", type=int)
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True)
+@idempotency_key_option
 @click.pass_context
 def update_asset_cmd(ctx: click.Context, asset_id: int, payload_file: str) -> None:
     """更新资源元数据。"""
 
     try:
         output_result(ctx, get_client(ctx).patch(f"/assets/{asset_id}", json_data=require_object(read_json_file(payload_file, label="资源更新载荷"), label="资源更新载荷")))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("更新资源失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("更新资源失败", err)
 
 
 @asset_group.command("copy")
 @click.argument("asset_id", type=int)
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True)
+@idempotency_key_option
 @click.pass_context
 def copy_asset_cmd(ctx: click.Context, asset_id: int, payload_file: str) -> None:
     """复制资源。"""
 
     try:
         output_result(ctx, get_client(ctx).post(f"/assets/{asset_id}/copy", json_data=require_object(read_json_file(payload_file, label="资源复制载荷"), label="资源复制载荷")))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("复制资源失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("复制资源失败", err)
 
 
 @asset_group.command("archive")
 @click.argument("asset_id", type=int, required=False)
 @click.option("--ids-file", type=click.Path(exists=True, dir_okay=False))
 @click.option("--yes", is_flag=True)
+@idempotency_key_option
 @click.pass_context
 def archive_asset_cmd(ctx: click.Context, asset_id: int | None, ids_file: str | None, yes: bool) -> None:
     """归档单个或一批资源。"""
@@ -226,7 +214,5 @@ def archive_asset_cmd(ctx: click.Context, asset_id: int | None, ids_file: str | 
             raise click.UsageError("必须提供 asset_id 或 --ids-file。")
         confirm_archive([asset_id], yes=yes, label="资源")
         output_result(ctx, client.post(f"/assets/{asset_id}/archive"))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("归档资源失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("归档资源失败", err)

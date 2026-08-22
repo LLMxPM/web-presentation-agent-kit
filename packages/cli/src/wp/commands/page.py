@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import click
 
 from wp.client import ApiClient, ApiClientError
@@ -14,6 +12,7 @@ from wp.commands.common import (
     confirm_archive,
     get_client,
     handle_api_error,
+    idempotency_key_option,
     output_result,
     read_json_file,
     read_text_file,
@@ -114,6 +113,7 @@ def get_page_source_cmd(ctx: click.Context, page_id: int) -> None:
 @page_group.command("update")
 @click.argument("page_id", type=int)
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="页面更新 JSON 请求体")
+@idempotency_key_option
 @click.pass_context
 def update_page_cmd(ctx: click.Context, page_id: int, payload_file: str) -> None:
     """更新页面轻量元数据；源码和结构字段必须走 edit。"""
@@ -132,6 +132,7 @@ def update_page_cmd(ctx: click.Context, page_id: int, payload_file: str) -> None
 @click.option("--description", "-d", help="页面描述")
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), help="完整页面创建 JSON 请求体")
 @click.option("--wait/--no-wait", default=True, help="是否等待后台 Worker 编译与诊断完成 (默认等待)")
+@idempotency_key_option
 @click.pass_context
 def create_page_cmd(
     ctx: click.Context,
@@ -157,7 +158,10 @@ def create_page_cmd(
                 "description": description,
             }
         client = get_client(ctx)
-        output_result(ctx, resolve_wait_job(client, client.create_page(payload), wait=wait, timeout=120.0))
+        result = resolve_wait_job(client, client.create_page(payload), wait=wait, timeout=120.0)
+        if wait:
+            require_success_job(result, ctx=ctx)
+        output_result(ctx, result)
     except ApiClientError as err:
         handle_api_error("提交页面任务失败", err)
 
@@ -166,6 +170,7 @@ def create_page_cmd(
 @click.argument("page_id", type=int, required=False)
 @click.option("--ids-file", type=click.Path(exists=True, dir_okay=False), help="批量归档 ID JSON 数组")
 @click.option("--yes", "-y", is_flag=True, help="跳过确认直接归档")
+@idempotency_key_option
 @click.pass_context
 def archive_page_cmd(ctx: click.Context, page_id: int | None, ids_file: str | None, yes: bool) -> None:
     """归档页面。"""
@@ -188,6 +193,7 @@ def archive_page_cmd(ctx: click.Context, page_id: int | None, ids_file: str | No
 @page_group.command("copy")
 @click.argument("page_id", type=int)
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="页面复制 JSON 请求体")
+@idempotency_key_option
 @click.pass_context
 def copy_page_cmd(ctx: click.Context, page_id: int, payload_file: str) -> None:
     """复制页面到目标项目。"""
@@ -205,6 +211,7 @@ def copy_page_cmd(ctx: click.Context, page_id: int, payload_file: str) -> None:
 @click.option("--base-version-no", type=int, required=True)
 @click.option("--wait/--no-wait", default=True)
 @click.option("--timeout", type=float, default=120.0, show_default=True)
+@idempotency_key_option
 @click.pass_context
 def edit_page_cmd(ctx: click.Context, page_id: int, edits_file: str, base_version_no: int, wait: bool, timeout: float) -> None:
     """提交页面结构化编辑任务。"""
@@ -216,7 +223,7 @@ def edit_page_cmd(ctx: click.Context, page_id: int, edits_file: str, base_versio
         job = client.edit_page(page_id, payload)
         result = resolve_wait_job(client, job, wait=wait, timeout=timeout)
         if wait:
-            require_success_job(result)
+            require_success_job(result, ctx=ctx)
         output_result(ctx, result)
     except ApiClientError as err:
         handle_api_error("提交页面编辑失败", err)

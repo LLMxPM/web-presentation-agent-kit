@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import click
 
+from wp.client import ApiClientError
 from wp.commands.common import get_client, handle_api_error, output_result
 
 
@@ -19,10 +20,8 @@ def system_version_cmd(ctx: click.Context) -> None:
 
     try:
         output_result(ctx, get_client(ctx).get("/system/version"))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("获取系统版本失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("获取系统版本失败", err)
 
 
 @system_group.command("health")
@@ -32,10 +31,8 @@ def system_health_cmd(ctx: click.Context) -> None:
 
     try:
         output_result(ctx, get_client(ctx).get("/system/health"))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("检查系统健康失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("检查系统健康失败", err)
 
 
 @click.group("standards")
@@ -48,10 +45,8 @@ def _standard(entity_type: str, ctx: click.Context) -> None:
 
     try:
         output_result(ctx, get_client(ctx).get_standard(entity_type))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("读取开发标准失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("读取开发标准失败", err)
 
 
 @standards_group.command("page")
@@ -82,10 +77,8 @@ def guide_list_cmd(ctx: click.Context) -> None:
 
     try:
         output_result(ctx, get_client(ctx).get_operation_guide())
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("获取操作指南列表失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("获取操作指南列表失败", err)
 
 
 @guide_group.command("get")
@@ -96,7 +89,5 @@ def guide_get_cmd(ctx: click.Context, operation_key: str) -> None:
 
     try:
         output_result(ctx, get_client(ctx).get_operation_guide(operation_key))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("获取操作指南详情失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("获取操作指南详情失败", err)

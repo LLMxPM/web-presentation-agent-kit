@@ -7,7 +7,16 @@ import click
 from wp.client import ApiClient, ApiClientError
 from wp.config import get_profile, load_config
 from wp.formatter import print_error, print_json, print_success, print_table
-from wp.commands.common import confirm_archive, get_client, handle_api_error, output_result, read_json_file, require_ids, require_object
+from wp.commands.common import (
+    confirm_archive,
+    get_client,
+    handle_api_error,
+    idempotency_key_option,
+    output_result,
+    read_json_file,
+    require_ids,
+    require_object,
+)
 
 
 @click.group("style")
@@ -73,6 +82,7 @@ def get_style_cmd(ctx: click.Context, style_id: int) -> None:
 @click.option("--name", "-n", help="样式方案名称")
 @click.option("--description", "-d", help="样式描述")
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), help="完整样式创建 JSON 请求体")
+@idempotency_key_option
 @click.pass_context
 def create_style_cmd(ctx: click.Context, name: str | None, description: str | None, payload_file: str | None) -> None:
     """创建新样式方案。"""
@@ -92,6 +102,7 @@ def create_style_cmd(ctx: click.Context, name: str | None, description: str | No
 @style_group.command("update")
 @click.argument("style_id", type=int)
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True)
+@idempotency_key_option
 @click.pass_context
 def update_style_cmd(ctx: click.Context, style_id: int, payload_file: str) -> None:
     """更新样式元数据和 configuration。"""
@@ -105,6 +116,7 @@ def update_style_cmd(ctx: click.Context, style_id: int, payload_file: str) -> No
 @style_group.command("copy")
 @click.argument("style_id", type=int)
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True)
+@idempotency_key_option
 @click.pass_context
 def copy_style_cmd(ctx: click.Context, style_id: int, payload_file: str) -> None:
     """复制样式方案。"""
@@ -119,6 +131,7 @@ def copy_style_cmd(ctx: click.Context, style_id: int, payload_file: str) -> None
 @click.argument("style_id", type=int, required=False)
 @click.option("--ids-file", type=click.Path(exists=True, dir_okay=False))
 @click.option("--yes", "-y", is_flag=True, help="跳过确认直接归档")
+@idempotency_key_option
 @click.pass_context
 def archive_style_cmd(ctx: click.Context, style_id: int | None, ids_file: str | None, yes: bool) -> None:
     """归档样式方案（默认样式受保护禁止归档）。"""

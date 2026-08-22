@@ -41,3 +41,5 @@ wp job wait <job_id>
 ```
 
 复杂写入参数使用 `--payload-file`、`--edits-file`、`--content-file`、`--route-file` 和 `--ids-file`。Build、产物下载、Agent 运行、图片能力、Restore 和 MCP 不属于当前 CLI。
+
+写入命令支持 `--idempotency-key <key>`；网络超时后需要重放同一业务请求时复用原 key，不要把同一个 key 用于不同请求。

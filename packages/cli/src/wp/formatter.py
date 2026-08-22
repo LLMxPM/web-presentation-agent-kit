@@ -26,13 +26,23 @@ def print_success(message: str) -> None:
     console.print(f"[bold green]✔[/bold green] {message}")
 
 
-def print_error(message: str, code: str | None = None, details: Any = None) -> None:
+def print_error(
+    message: str,
+    code: str | None = None,
+    details: Any = None,
+    request_id: str | None = None,
+    retry_after: str | None = None,
+) -> None:
     """输出错误提示。"""
 
     prefix = f"[{code}] " if code else ""
     err_console.print(f"[bold red]✖[/bold red] [red]{prefix}{message}[/red]")
     if details:
         err_console.print(f"[dim]详细信息: {details}[/dim]")
+    if request_id:
+        err_console.print(f"[dim]请求 ID: {request_id}[/dim]")
+    if retry_after:
+        err_console.print(f"[dim]建议等待: {retry_after} 秒后重试[/dim]")
 
 
 def print_table(title: str, columns: list[str], rows: list[list[Any]]) -> None:

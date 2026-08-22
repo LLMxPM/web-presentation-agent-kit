@@ -20,7 +20,12 @@ from wp.commands.system import guide_group, standards_group, system_group
 
 
 @click.group()
-@click.option("--json", "as_json", is_flag=True, help="以 JSON 格式输出机器可读数据")
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    help="让支持表格视图的命令输出 JSON；复杂响应默认也输出 JSON。",
+)
 @click.option("--profile", help="指定使用的 Profile 名称 (默认 default)")
 @click.option("--workspace", "-w", "workspace_id", type=int, help="覆盖当前操作的目标工作空间 ID")
 @click.pass_context

@@ -7,7 +7,16 @@ import click
 from wp.client import ApiClient, ApiClientError
 from wp.config import get_profile, load_config
 from wp.formatter import print_error, print_json, print_success, print_table
-from wp.commands.common import confirm_archive, get_client, handle_api_error, output_result, read_json_file, require_ids, require_object
+from wp.commands.common import (
+    confirm_archive,
+    get_client,
+    handle_api_error,
+    idempotency_key_option,
+    output_result,
+    read_json_file,
+    require_ids,
+    require_object,
+)
 
 
 @click.group("theme")
@@ -74,6 +83,7 @@ def get_theme_cmd(ctx: click.Context, theme_id: int) -> None:
 @click.option("--name", "-n", help="主题名称")
 @click.option("--description", "-d", help="主题描述")
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), help="完整主题 JSON 请求体")
+@idempotency_key_option
 @click.pass_context
 def create_theme_cmd(ctx: click.Context, key: str | None, name: str | None, description: str | None, payload_file: str | None) -> None:
     """创建新主题。"""
@@ -93,6 +103,7 @@ def create_theme_cmd(ctx: click.Context, key: str | None, name: str | None, desc
 @theme_group.command("update")
 @click.argument("theme_id", type=int)
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True)
+@idempotency_key_option
 @click.pass_context
 def update_theme_cmd(ctx: click.Context, theme_id: int, payload_file: str) -> None:
     """更新主题名称、描述和色板。"""
@@ -106,6 +117,7 @@ def update_theme_cmd(ctx: click.Context, theme_id: int, payload_file: str) -> No
 @theme_group.command("copy")
 @click.argument("theme_id", type=int)
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True)
+@idempotency_key_option
 @click.pass_context
 def copy_theme_cmd(ctx: click.Context, theme_id: int, payload_file: str) -> None:
     """复制主题。"""
@@ -120,6 +132,7 @@ def copy_theme_cmd(ctx: click.Context, theme_id: int, payload_file: str) -> None
 @click.argument("theme_id", type=int, required=False)
 @click.option("--ids-file", type=click.Path(exists=True, dir_okay=False))
 @click.option("--yes", "-y", is_flag=True, help="跳过确认直接归档")
+@idempotency_key_option
 @click.pass_context
 def archive_theme_cmd(ctx: click.Context, theme_id: int | None, ids_file: str | None, yes: bool) -> None:
     """归档主题。"""

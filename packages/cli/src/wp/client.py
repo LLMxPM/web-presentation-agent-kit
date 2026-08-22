@@ -9,12 +9,18 @@ from wp_api_client import ApiClient as SharedApiClient, ApiClientError
 class ApiClient(SharedApiClient):
     """把 CLI ProfileConfig 适配为共享 API Client。"""
 
-    def __init__(self, profile: ProfileConfig, workspace_id: int | None = None) -> None:
+    def __init__(
+        self,
+        profile: ProfileConfig,
+        workspace_id: int | None = None,
+        idempotency_key: str | None = None,
+    ) -> None:
         super().__init__(
             endpoint=profile.endpoint,
             token=profile.token,
             workspace_id=workspace_id or profile.default_workspace_id,
             user_agent="web-presentation-cli/0.1.0",
+            idempotency_key=idempotency_key,
         )
 
 

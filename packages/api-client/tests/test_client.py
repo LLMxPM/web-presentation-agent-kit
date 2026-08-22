@@ -147,3 +147,67 @@ def test_typed_capability_helpers_use_canonical_external_paths() -> None:
         "/api/v1/jobs/mutations/components/metadata",
     ]
     client.close()
+
+
+def test_client_reuses_default_idempotency_key_for_write_requests() -> None:
+    """验证调用方提供的默认幂等键会进入所有写请求。"""
+
+    captured: dict[str, str] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["key"] = request.headers["Idempotency-Key"]
+        return httpx.Response(200, json={"ok": True})
+
+    client = ApiClient("https://backend.test", token="pat_secret", idempotency_key="replay-key")
+    client.client.close()
+    client.client = httpx.Client(base_url=client.endpoint, transport=httpx.MockTransport(handler))
+
+    assert client.patch("/projects/1", json_data={"name": "项目"})["ok"] is True
+    assert captured["key"] == "replay-key"
+    client.close()
+
+
+def test_client_preserves_validation_detail_and_handles_non_object_error() -> None:
+    """验证 422 detail 不丢失，并避免非对象错误体触发 AttributeError。"""
+
+    responses = iter(
+        [
+            httpx.Response(
+                422,
+                json={"code": "VALIDATION_ERROR", "message": "参数错误", "detail": [{"loc": ["body", "name"]}]},
+            ),
+            httpx.Response(400, json=["bad request"]),
+        ]
+    )
+    client = ApiClient("https://backend.test", token="pat_secret")
+    client.client.close()
+    client.client = httpx.Client(
+        base_url=client.endpoint,
+        transport=httpx.MockTransport(lambda _: next(responses)),
+    )
+
+    with pytest.raises(ApiClientError) as validation_error:
+        client.get("/projects")
+    assert validation_error.value.details == [{"loc": ["body", "name"]}]
+
+    with pytest.raises(ApiClientError) as list_error:
+        client.get("/projects")
+    assert list_error.value.details == ["bad request"]
+    client.close()
+
+
+def test_client_wraps_transport_errors() -> None:
+    """验证连接失败统一转换为稳定的网络错误码。"""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("offline", request=request)
+
+    client = ApiClient("https://backend.test", token="pat_secret")
+    client.client.close()
+    client.client = httpx.Client(base_url=client.endpoint, transport=httpx.MockTransport(handler))
+
+    with pytest.raises(ApiClientError) as caught:
+        client.get("/workspaces")
+    assert caught.value.code == "NETWORK_ERROR"
+    assert caught.value.status_code == 503
+    client.close()

@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import click
 
+from wp.client import ApiClientError
 from wp.commands.common import (
     confirm_archive,
     get_client,
     handle_api_error,
+    idempotency_key_option,
     output_result,
     read_json_file,
     read_text_file,
@@ -49,10 +51,8 @@ def list_components_cmd(ctx: click.Context, page: int, page_size: int, keyword: 
             for item in result.get("items", [])
         ]
         print_table("组件列表", ["ID", "导入标识", "名称", "类型", "状态"], rows)
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("获取组件列表失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("获取组件列表失败", err)
 
 
 @component_group.command("get")
@@ -63,10 +63,8 @@ def get_component_cmd(ctx: click.Context, component_id: int) -> None:
 
     try:
         output_result(ctx, get_client(ctx).get(f"/components/{component_id}"))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("获取组件失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("获取组件失败", err)
 
 
 @component_group.command("create")
@@ -79,6 +77,7 @@ def get_component_cmd(ctx: click.Context, component_id: int) -> None:
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False))
 @click.option("--wait/--no-wait", default=True)
 @click.option("--timeout", type=float, default=120.0, show_default=True)
+@idempotency_key_option
 @click.pass_context
 def create_component_cmd(
     ctx: click.Context,
@@ -117,12 +116,10 @@ def create_component_cmd(
         client = get_client(ctx)
         result = resolve_wait_job(client, client.create_component(payload), wait=wait, timeout=timeout)
         if wait:
-            require_success_job(result)
+            require_success_job(result, ctx=ctx)
         output_result(ctx, result)
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("提交组件创建失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("提交组件创建失败", err)
 
 
 @component_group.command("update")
@@ -131,6 +128,7 @@ def create_component_cmd(
 @click.option("--preview-schema-file", type=click.Path(exists=True, dir_okay=False), help="覆盖 payload 中的 Preview Schema JSON")
 @click.option("--wait/--no-wait", default=True)
 @click.option("--timeout", type=float, default=120.0, show_default=True)
+@idempotency_key_option
 @click.pass_context
 def update_component_cmd(
     ctx: click.Context,
@@ -154,14 +152,12 @@ def update_component_cmd(
             job = client.update_component_metadata_async({"component_id": component_id, **payload})
             result = resolve_wait_job(client, job, wait=wait, timeout=timeout)
             if wait:
-                require_success_job(result)
+                require_success_job(result, ctx=ctx)
             output_result(ctx, result)
             return
         output_result(ctx, client.patch(f"/components/{component_id}", json_data=payload))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("更新组件失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("更新组件失败", err)
 
 
 @component_group.command("edit")
@@ -171,6 +167,7 @@ def update_component_cmd(
 @click.option("--base-draft-hash", required=True)
 @click.option("--wait/--no-wait", default=True)
 @click.option("--timeout", type=float, default=120.0, show_default=True)
+@idempotency_key_option
 @click.pass_context
 def edit_component_cmd(ctx: click.Context, component_id: int, edits_file: str, base_version_no: int, base_draft_hash: str, wait: bool, timeout: float) -> None:
     """提交组件源码结构化编辑任务。"""
@@ -181,12 +178,10 @@ def edit_component_cmd(ctx: click.Context, component_id: int, edits_file: str, b
         payload = {"component_id": component_id, "base_version_no": base_version_no, "base_draft_hash": base_draft_hash, "edits": edits}
         result = resolve_wait_job(client, client.edit_component(component_id, payload), wait=wait, timeout=timeout)
         if wait:
-            require_success_job(result)
+            require_success_job(result, ctx=ctx)
         output_result(ctx, result)
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("提交组件编辑失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("提交组件编辑失败", err)
 
 
 @component_group.group("version")
@@ -202,10 +197,8 @@ def list_component_versions_cmd(ctx: click.Context, component_id: int) -> None:
 
     try:
         output_result(ctx, get_client(ctx).get(f"/components/{component_id}/versions"))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("获取组件版本失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("获取组件版本失败", err)
 
 
 @component_version_group.command("get")
@@ -217,10 +210,8 @@ def get_component_version_cmd(ctx: click.Context, component_id: int, version_no:
 
     try:
         output_result(ctx, get_client(ctx).get(f"/components/{component_id}/versions/{version_no}"))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("获取组件版本内容失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("获取组件版本内容失败", err)
 
 
 @component_group.command("dependencies")
@@ -231,10 +222,8 @@ def component_dependencies_cmd(ctx: click.Context, component_id: int) -> None:
 
     try:
         output_result(ctx, get_client(ctx).get(f"/components/{component_id}/dependencies"))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("获取组件依赖失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("获取组件依赖失败", err)
 
 
 @component_group.command("validate")
@@ -261,32 +250,30 @@ def validate_component_cmd(ctx: click.Context, component_id: int, mode: str, sou
         payload["preview_schema"] = require_object(read_json_file(preview_schema_file, label="Preview Schema"), label="Preview Schema")
     try:
         output_result(ctx, get_client(ctx).validate_entity(payload))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("组件校验失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("组件校验失败", err)
 
 
 @component_group.command("publish")
 @click.argument("component_id", type=int)
 @click.option("--release-name")
 @click.option("--change-note")
+@idempotency_key_option
 @click.pass_context
 def publish_component_cmd(ctx: click.Context, component_id: int, release_name: str | None, change_note: str | None) -> None:
     """发布组件当前草稿。"""
 
     try:
         output_result(ctx, get_client(ctx).post(f"/components/{component_id}/publish", json_data={"release_name": release_name, "change_note": change_note}))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("发布组件失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("发布组件失败", err)
 
 
 @component_group.command("archive")
 @click.argument("component_id", type=int, required=False)
 @click.option("--ids-file", type=click.Path(exists=True, dir_okay=False))
 @click.option("--yes", is_flag=True)
+@idempotency_key_option
 @click.pass_context
 def archive_component_cmd(ctx: click.Context, component_id: int | None, ids_file: str | None, yes: bool) -> None:
     """归档单个或一批组件。"""
@@ -302,7 +289,5 @@ def archive_component_cmd(ctx: click.Context, component_id: int | None, ids_file
             raise click.UsageError("必须提供 component_id 或 --ids-file。")
         confirm_archive([component_id], yes=yes, label="组件")
         output_result(ctx, client.post(f"/components/{component_id}/archive"))
-    except Exception as err:
-        if hasattr(err, "message"):
-            handle_api_error("归档组件失败", err)  # type: ignore[arg-type]
-        raise
+    except ApiClientError as err:
+        handle_api_error("归档组件失败", err)

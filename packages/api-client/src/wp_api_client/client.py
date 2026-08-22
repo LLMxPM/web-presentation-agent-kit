@@ -41,6 +41,7 @@ class ApiClient:
         token: str | None = None,
         workspace_id: int | None = None,
         user_agent: str = "web-presentation-agent-kit/0.1.0",
+        idempotency_key: str | None = None,
     ) -> None:
         """创建客户端；endpoint 不应包含 `/api/v1`，公共前缀由本类统一拼接。"""
 
@@ -48,7 +49,34 @@ class ApiClient:
         self.token = token
         self.workspace_id = workspace_id
         self.user_agent = user_agent
+        self.default_idempotency_key = idempotency_key
         self.client = httpx.Client(base_url=self.endpoint, timeout=30.0)
+
+    def _request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
+        """发送 HTTP 请求并把网络层异常转换为统一的 API Client 错误。"""
+
+        try:
+            request_method = getattr(self.client, method.lower())
+            return request_method(url, **kwargs)
+        except httpx.TimeoutException as exc:
+            raise ApiClientError(
+                "请求服务端超时，请检查网络或稍后重试。",
+                status_code=504,
+                code="REQUEST_TIMEOUT",
+            ) from exc
+        except httpx.RequestError as exc:
+            raise ApiClientError(
+                f"无法连接服务端：{exc}",
+                status_code=503,
+                code="NETWORK_ERROR",
+            ) from exc
+
+    def _resolve_idempotency_key(self, idempotent: bool, key: str | None) -> str | None:
+        """解析本次请求的幂等键；显式参数优先于客户端默认值。"""
+
+        if not idempotent:
+            return None
+        return key or self.default_idempotency_key or uuid.uuid4().hex
 
     def _get_headers(
         self,
@@ -81,7 +109,10 @@ class ApiClient:
                 return {}
             content_type = response.headers.get("content-type", "")
             if "application/json" in content_type:
-                result = response.json()
+                try:
+                    result = response.json()
+                except (TypeError, ValueError):
+                    return response.text
                 if isinstance(result, dict):
                     metadata = {"request_id": response.headers.get("X-Request-ID")}
                     if idempotency_key:
@@ -98,10 +129,13 @@ class ApiClient:
         details = None
         try:
             err_json = response.json()
-            err_msg = err_json.get("message") or err_msg
-            code = err_json.get("code") or code
-            details = err_json.get("data")
-        except Exception:
+            if isinstance(err_json, dict):
+                err_msg = err_json.get("message") or err_json.get("detail") or err_msg
+                code = err_json.get("code") or code
+                details = err_json.get("data", err_json.get("detail"))
+            else:
+                details = err_json
+        except (TypeError, ValueError):
             err_msg = response.text or err_msg
 
         raise ApiClientError(
@@ -116,7 +150,7 @@ class ApiClient:
     def get(self, path: str, params: Mapping[str, Any] | None = None, workspace_id: int | None = None) -> Any:
         url = f"/api/v1{path}"
         headers = self._get_headers(override_workspace_id=workspace_id)
-        resp = self.client.get(url, params=params, headers=headers)
+        resp = self._request("GET", url, params=params, headers=headers)
         return self._handle_response(resp)
 
     def get_operation_guide(self, operation_key: str | None = None) -> Any:
@@ -196,13 +230,13 @@ class ApiClient:
         workspace_id: int | None = None,
     ) -> Any:
         url = f"/api/v1{path}"
-        resolved_key = idempotency_key or (uuid.uuid4().hex if idempotent else None)
+        resolved_key = self._resolve_idempotency_key(idempotent, idempotency_key)
         headers = self._get_headers(
             idempotent=idempotent,
             custom_idempotency_key=resolved_key,
             override_workspace_id=workspace_id,
         )
-        resp = self.client.post(url, json=json_data, headers=headers)
+        resp = self._request("POST", url, json=json_data, headers=headers)
         return self._handle_response(resp, idempotency_key=resolved_key)
 
     def patch(
@@ -214,13 +248,13 @@ class ApiClient:
         workspace_id: int | None = None,
     ) -> Any:
         url = f"/api/v1{path}"
-        resolved_key = idempotency_key or (uuid.uuid4().hex if idempotent else None)
+        resolved_key = self._resolve_idempotency_key(idempotent, idempotency_key)
         headers = self._get_headers(
             idempotent=idempotent,
             custom_idempotency_key=resolved_key,
             override_workspace_id=workspace_id,
         )
-        resp = self.client.patch(url, json=json_data, headers=headers)
+        resp = self._request("PATCH", url, json=json_data, headers=headers)
         return self._handle_response(resp, idempotency_key=resolved_key)
 
     def put(
@@ -232,13 +266,13 @@ class ApiClient:
         workspace_id: int | None = None,
     ) -> Any:
         url = f"/api/v1{path}"
-        resolved_key = idempotency_key or (uuid.uuid4().hex if idempotent else None)
+        resolved_key = self._resolve_idempotency_key(idempotent, idempotency_key)
         headers = self._get_headers(
             idempotent=idempotent,
             custom_idempotency_key=resolved_key,
             override_workspace_id=workspace_id,
         )
-        resp = self.client.put(url, json=json_data, headers=headers)
+        resp = self._request("PUT", url, json=json_data, headers=headers)
         return self._handle_response(resp, idempotency_key=resolved_key)
 
     def delete(
@@ -249,13 +283,13 @@ class ApiClient:
         workspace_id: int | None = None,
     ) -> Any:
         url = f"/api/v1{path}"
-        resolved_key = idempotency_key or (uuid.uuid4().hex if idempotent else None)
+        resolved_key = self._resolve_idempotency_key(idempotent, idempotency_key)
         headers = self._get_headers(
             idempotent=idempotent,
             custom_idempotency_key=resolved_key,
             override_workspace_id=workspace_id,
         )
-        resp = self.client.delete(url, headers=headers)
+        resp = self._request("DELETE", url, headers=headers)
         return self._handle_response(resp, idempotency_key=resolved_key)
 
     def upload(
@@ -268,13 +302,13 @@ class ApiClient:
         workspace_id: int | None = None,
     ) -> Any:
         url = f"/api/v1{path}"
-        resolved_key = idempotency_key or (uuid.uuid4().hex if idempotent else None)
+        resolved_key = self._resolve_idempotency_key(idempotent, idempotency_key)
         headers = self._get_headers(
             idempotent=idempotent,
             custom_idempotency_key=resolved_key,
             override_workspace_id=workspace_id,
         )
-        resp = self.client.post(url, data=data, files=files, headers=headers)
+        resp = self._request("POST", url, data=data, files=files, headers=headers)
         return self._handle_response(resp, idempotency_key=resolved_key)
 
     def poll_mutation_job(
@@ -285,13 +319,18 @@ class ApiClient:
     ) -> dict[str, Any]:
         """轮询异步变更任务直到进入终态。"""
 
-        start = time.perf_counter()
-        while time.perf_counter() - start < timeout_seconds:
+        if timeout_seconds <= 0:
+            raise ApiClientError("等待 Mutation 任务超时：timeout 必须大于 0。", code="INVALID_TIMEOUT", status_code=400)
+
+        deadline = time.perf_counter() + timeout_seconds
+        while time.perf_counter() < deadline:
             job = self.get(f"/jobs/mutations/{job_id}")
             status = job.get("status")
             if status in {"succeeded", "failed", "canceled"}:
                 return job
-            time.sleep(interval)
+            remaining = deadline - time.perf_counter()
+            if remaining > 0:
+                time.sleep(min(max(interval, 0), remaining))
 
         raise ApiClientError(f"等待 Mutation 任务超时 ({timeout_seconds}s)", code="TIMEOUT")
 
@@ -343,7 +382,7 @@ class ApiClient:
             url = f"/api/v1{path_or_url}" if path_or_url.startswith("/") else f"/api/v1/{path_or_url}"
 
         headers = self._get_headers(override_workspace_id=workspace_id)
-        resp = self.client.get(url, params=params, headers=headers)
+        resp = self._request("GET", url, params=params, headers=headers)
         if not resp.is_success:
             self._handle_response(resp)
         return resp.headers, resp.content

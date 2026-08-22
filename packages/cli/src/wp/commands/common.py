@@ -17,7 +17,42 @@ def get_client(ctx: click.Context) -> ApiClient:
     """根据当前命令上下文创建绑定 Profile 和 Workspace 的 API Client。"""
 
     profile = get_profile(load_config(), ctx.obj.get("profile"))
-    return ApiClient(profile, workspace_id=ctx.obj.get("workspace_id"))
+    return ApiClient(
+        profile,
+        workspace_id=ctx.obj.get("workspace_id"),
+        idempotency_key=ctx.obj.get("idempotency_key"),
+    )
+
+
+def _validate_idempotency_key(
+    ctx: click.Context,
+    _: click.Parameter,
+    value: str | None,
+) -> str | None:
+    """校验并保存命令级幂等键，供当前命令创建的 API Client 使用。"""
+
+    if value is None:
+        return None
+    normalized = value.strip()
+    if not normalized:
+        raise click.BadParameter("幂等键不能为空。")
+    if len(normalized) > 128 or not normalized.isascii():
+        raise click.BadParameter("幂等键必须是不超过 128 个字符的 ASCII 字符串。")
+    ctx.ensure_object(dict)
+    ctx.obj["idempotency_key"] = normalized
+    return normalized
+
+
+def idempotency_key_option(command: Any) -> Any:
+    """为写命令增加可复用的 `--idempotency-key` 选项。"""
+
+    return click.option(
+        "--idempotency-key",
+        callback=_validate_idempotency_key,
+        expose_value=False,
+        metavar="KEY",
+        help="写操作幂等键；请求超时后可用同一键安全重放。",
+    )(command)
 
 
 def read_json_file(file_path: str, *, label: str = "JSON 文件") -> Any:
@@ -75,7 +110,13 @@ def output_result(ctx: click.Context, value: Any) -> None:
 def handle_api_error(message: str, error: ApiClientError) -> NoReturn:
     """统一打印结构化 API 错误并以非零状态退出。"""
 
-    print_error(f"{message}: {error.message}", code=error.code, details=error.details)
+    print_error(
+        f"{message}: {error.message}",
+        code=error.code,
+        details=error.details,
+        request_id=error.request_id,
+        retry_after=error.retry_after,
+    )
     raise SystemExit(1)
 
 
@@ -96,11 +137,22 @@ def resolve_wait_job(
     return client.poll_mutation_job(job_id, timeout_seconds=timeout)
 
 
-def require_success_job(job: dict[str, Any]) -> dict[str, Any]:
+def require_success_job(job: dict[str, Any], *, ctx: click.Context | None = None) -> dict[str, Any]:
     """将失败或取消的任务转换为 CLI 失败退出。"""
 
     if job.get("status") in {"failed", "canceled"}:
-        error = job.get("error") or {}
+        raw_error = job.get("error") or {}
+        error = raw_error if isinstance(raw_error, dict) else {"message": str(raw_error)}
+        if ctx is not None:
+            if ctx.obj.get("as_json"):
+                print_json(job)
+            else:
+                print_error(
+                    f"异步任务执行失败: {error.get('message') or '未提供错误信息。'}",
+                    code=error.get("code"),
+                    details=error,
+                )
+            raise SystemExit(1)
         raise click.ClickException(str(error.get("message") or "异步任务执行失败。"))
     return job
 
@@ -118,6 +170,7 @@ __all__ = [
     "confirm_archive",
     "get_client",
     "handle_api_error",
+    "idempotency_key_option",
     "output_result",
     "read_json_file",
     "read_text_file",
