@@ -37,6 +37,15 @@ def test_cli_help() -> None:
     assert "profile" in result.output
 
 
+def test_cli_version() -> None:
+    """测试顶层 --version 输出 CLI 包的当前版本。"""
+
+    result = CliRunner().invoke(main, ["--version"])
+
+    assert result.exit_code == 0, result.output
+    assert result.output.strip() == "wp, version 0.1.0"
+
+
 def test_page_validate_help_describes_structured_edits() -> None:
     """页面校验帮助应说明 edits 文件的字段和允许的操作类型。"""
 

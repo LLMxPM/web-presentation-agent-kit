@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import click
 
+from wp import __version__
 from wp.commands.asset import asset_group
 from wp.commands.auth import login_cmd, logout_cmd, whoami_cmd
 from wp.commands.component import component_group
@@ -20,6 +21,7 @@ from wp.commands.system import guide_group, standards_group, system_group
 
 
 @click.group()
+@click.version_option(version=__version__, prog_name="wp")
 @click.option(
     "--json",
     "as_json",
