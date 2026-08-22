@@ -9,7 +9,7 @@ description: Use the web-presentation External API v1 through wp CLI or MCP to c
 
 ## 工作流
 
-1. 先确定唯一工作空间。通过 `wp auth whoami`、`wp workspace list` 或等价 MCP Tool 获取授权空间、当前 Scope 和能力；没有明确空间时不要写入。
+1. 先确定唯一工作空间。通过 `wp whoami`、`wp workspace list` 或等价 MCP Tool 获取授权空间、当前 Scope 和能力；没有明确空间时不要写入。
 2. 在生成或修改源码前读取当前 `/api/v1/standards/page`、`/api/v1/standards/component` 和 `/api/v1/guides`。规范和操作手册以 Backend 返回为准，不复制旧提示词或内部 `tool_specs.py`。
 3. 先读取目标项目、页面或组件的当前版本和源码，再基于版本基线提交变更。写操作使用 `wp` 或 MCP 的资源化接口，保持幂等键和工作空间上下文。
 4. 页面和组件的创建、源码编辑、截图和构建都是异步任务：提交后轮询任务终态，失败时保留 Backend 的错误码和诊断摘要，不假装同步成功。
