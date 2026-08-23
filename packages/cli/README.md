@@ -7,6 +7,11 @@ External API 路径、Scope、错误码、幂等和异步任务语义以主仓 [
 ## 安装与快速开始
 
 ```bash
+# 从 PyPI 安装公开发行版
+uv tool install web-presentation-cli
+# 或使用 pipx
+pipx install web-presentation-cli
+
 # 在 agent-kit 仓库根目录安装 CLI
 uv pip install -e ./packages/cli
 

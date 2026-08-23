@@ -61,3 +61,15 @@ CLI 能力补齐实施文档：[docs/cli-capability-completion.md](docs/cli-capa
 ## 发布关系
 
 本期仅发布 CLI；版本发布前必须针对目标 `web-presentation` 版本运行 External API v1 契约测试。
+
+## 公开安装与发布
+
+公开用户可直接从 PyPI 安装 CLI：
+
+```bash
+uv tool install web-presentation-cli
+# 或
+pipx install web-presentation-cli
+```
+
+发布流程和 PyPI Trusted Publishing 配置见：[CLI 公开分发](docs/public-distribution.md)。

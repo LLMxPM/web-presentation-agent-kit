@@ -13,8 +13,12 @@ dependencies = [
     "httpx>=0.27.0",
     "rich>=13.7.0",
     "pydantic>=2.7.0",
-    "web-presentation-api-client",
 ]
+
+[project.urls]
+Homepage = "https://github.com/LLMxPM/web-presentation-agent-kit"
+Repository = "https://github.com/LLMxPM/web-presentation-agent-kit"
+Issues = "https://github.com/LLMxPM/web-presentation-agent-kit/issues"
 
 [dependency-groups]
 dev = [
@@ -27,8 +31,15 @@ wp = "wp.cli:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src/wp"]
 
-[tool.uv.sources]
-web-presentation-api-client = { workspace = true }
+[tool.hatch.build.targets.sdist.force-include]
+"../api-client/src/wp_api_client" = "src/wp_api_client"
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/wp_api_client" = "wp_api_client"
+
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "hatch_build.py"
+
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
