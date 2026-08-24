@@ -8,7 +8,7 @@
 
 MCP Server 不在本期范围内。仓库中的 `mcp-server/` 和相关设计文档仅作为后续接入占位，不属于当前 Skill、CLI 文档、默认测试门禁或发布能力；本期不要据此调用或扩展 MCP。
 
-主平台仓库仍是 `web-presentation`，负责 Backend、Editor、Runtime 和 `/api/v1` External API v1。本仓库不直接访问主平台数据库、Redis、Runtime 或 Chromium。
+主平台仓库是 [web-presentation](https://github.com/LLMxPM/web-presentation)，项目官网与案例演示见 [https://presentation.inputloom.com/](https://presentation.inputloom.com/)。主平台负责 Backend、Editor、Runtime 和 `/api/v1` External API v1。本仓库不直接访问主平台数据库、Redis、Runtime 或 Chromium。
 
 主仓唯一维护的 External API v1 契约：[External Agent API v1 契约](https://github.com/LLMxPM/web-presentation/blob/main/docs/developer/reference/external-agent-api.md)。本仓库只维护 CLI、MCP Server、共享客户端和 Skill 的接入实现。
 
@@ -44,17 +44,14 @@ uv tool install --editable packages/cli
 wp --help
 ```
 
-CLI 通过本地 Profile 配置 Backend 地址、PAT 和默认工作空间。对外接口公共前缀固定为 `/api/v1`，不要使用旧的 `/api/external/v1`。
-
-CLI 能力补齐实施文档：[docs/cli-capability-completion.md](docs/cli-capability-completion.md)
+CLI 通过本地 Profile 配置 Backend 地址、PAT 和默认工作空间。对外接口公共前缀固定为 `/api/v1`。
 
 ## 边界
 
 1. Backend 是权限、工作空间隔离、业务校验和异步任务状态的最终事实源；API 语义以主仓 [External Agent API v1 契约](https://github.com/LLMxPM/web-presentation/blob/main/docs/developer/reference/external-agent-api.md) 为准。
 2. CLI 和 Skill 不复制 Backend 内部 AI `tool_specs.py`；CLI 只暴露面向用户可直接执行的资源化命令，平台契约由主仓 External API 文档维护。
 3. 写操作必须携带幂等语义；页面、组件和截图等重任务通过 Backend 已有任务接口执行。
-4. Build External API 尚未冻结，本期 CLI、共享客户端和 Skill 均不提供构建或产物下载能力。
-5. PAT 不得进入 CLI 输出、异常消息、日志或 telemetry。
+4. PAT 不得进入 CLI 输出、异常消息、日志或 telemetry。
 
 主仓文档只维护平台契约；CLI 命令、Skill 工作流、适配测试和实施进度只在本仓维护，避免两边同时修改同一份实现说明。
 
@@ -73,3 +70,8 @@ pipx install web-presentation-cli
 ```
 
 发布流程和 PyPI Trusted Publishing 配置见：[CLI 公开分发](docs/public-distribution.md)。
+
+## License
+
+当前仓库采用 Apache License 2.0，见 [LICENSE](./LICENSE)。
+

@@ -10,7 +10,7 @@
 - Python 项目使用 `uv` 管理依赖，使用 `.venv` 管理虚拟环境。
 - 新增 Python 源文件开头写明文件功能描述；Markdown 文件不需要。
 - 函数补充中文注释，优先说明职责、输入输出和关键约束。
-- 外部 HTTP 公共前缀固定为 `/api/v1`，禁止重新引入 `/api/external/v1`。
+- 外部 HTTP 公共前缀固定为 `/api/v1`。
 - 不要在 CLI 中直接访问 Backend 数据库、Redis、Runtime、Chromium 或内部 Service。
 - 不要复制 Backend `tool_specs.py` 的内部工具目录；以 External API v1 契约、standards 和资源接口为准。
 - 本期只实现和维护 CLI 接入；除非用户明确重新纳入范围，不新增、扩展或修复 MCP 协议能力，也不把 MCP 作为当前可用入口写入 Skill 或用户文档。
