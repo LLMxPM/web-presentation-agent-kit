@@ -86,16 +86,18 @@ def test_retry_after_and_request_id_are_preserved_on_conflict() -> None:
     client.close()
 
 
-def test_guides_detail_and_pending_poll_paths(monkeypatch) -> None:
-    """验证 Guides 详情路径以及 pending/running 轮询到终态。"""
+def test_openapi_uses_root_path_without_credentials_and_poll_reaches_terminal(monkeypatch) -> None:
+    """验证 OpenAPI 不携带凭证，并验证 pending/running 轮询到终态。"""
 
     statuses = iter(["pending", "running", "succeeded"])
     paths: list[str] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
         paths.append(request.url.path)
-        if request.url.path.endswith("/guides/page.update"):
-            return httpx.Response(200, json={"operation_key": "page.update"})
+        if request.url.path == "/openapi.json":
+            assert "Authorization" not in request.headers
+            assert "X-Workspace-ID" not in request.headers
+            return httpx.Response(200, json={"openapi": "3.1.0", "paths": {}})
         return httpx.Response(200, json={"job_id": "job-1", "status": next(statuses)})
 
     monkeypatch.setattr("wp_api_client.client.time.sleep", lambda _: None)
@@ -103,10 +105,10 @@ def test_guides_detail_and_pending_poll_paths(monkeypatch) -> None:
     client.client.close()
     client.client = httpx.Client(base_url=client.endpoint, transport=httpx.MockTransport(handler))
 
-    assert client.get_operation_guide("page.update")["operation_key"] == "page.update"
+    assert client.get_openapi_schema()["openapi"] == "3.1.0"
     assert client.poll_mutation_job("job-1", interval=0)["status"] == "succeeded"
     assert paths == [
-        "/api/v1/guides/page.update",
+        "/openapi.json",
         "/api/v1/jobs/mutations/job-1",
         "/api/v1/jobs/mutations/job-1",
         "/api/v1/jobs/mutations/job-1",
@@ -210,4 +212,21 @@ def test_client_wraps_transport_errors() -> None:
         client.get("/workspaces")
     assert caught.value.code == "NETWORK_ERROR"
     assert caught.value.status_code == 503
+    client.close()
+
+
+def test_openapi_rejects_invalid_payload_without_leaking_credentials() -> None:
+    """OpenAPI 响应必须含 paths，且请求不能携带 PAT。"""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert "Authorization" not in request.headers
+        return httpx.Response(200, json={"openapi": "3.1.0"})
+
+    client = ApiClient("https://backend.test", token="pat_secret", workspace_id=12)
+    client.client.close()
+    client.client = httpx.Client(base_url=client.endpoint, transport=httpx.MockTransport(handler))
+
+    with pytest.raises(ApiClientError) as caught:
+        client.get_openapi_schema()
+    assert caught.value.code == "OPENAPI_INVALID"
     client.close()

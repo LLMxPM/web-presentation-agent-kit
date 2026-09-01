@@ -17,6 +17,7 @@ from wp.commands.common import (
     require_ids,
     require_object,
 )
+from wp.openapi_help import contract, openapi_command
 
 
 @click.group("project")
@@ -24,7 +25,7 @@ def project_group() -> None:
     """项目管理操作。"""
 
 
-@project_group.command("list")
+@openapi_command(project_group, "list", contract("GET", "/api/v1/projects"))
 @click.option("--page", "-p", default=1, type=int, help="页码")
 @click.option("--page-size", "-s", default=20, type=int, help="每页数量")
 @click.option("--keyword", "-k", help="搜索关键字")
@@ -53,7 +54,7 @@ def list_projects_cmd(ctx: click.Context, page: int, page_size: int, keyword: st
         raise SystemExit(1)
 
 
-@project_group.command("get")
+@openapi_command(project_group, "get", contract("GET", "/api/v1/projects/{project_id}"))
 @click.argument("project_id", type=int)
 @click.pass_context
 def get_project_cmd(ctx: click.Context, project_id: int) -> None:
@@ -86,14 +87,19 @@ def get_project_cmd(ctx: click.Context, project_id: int) -> None:
         raise SystemExit(1)
 
 
-@project_group.command("create")
+@openapi_command(
+    project_group,
+    "create",
+    contract("POST", "/api/v1/projects"),
+    examples=('wp project create --name "季度复盘" --idempotency-key project-quarterly-review',),
+)
 @click.option("--name", "-n", help="项目名称")
 @click.option("--description", "-d", help="项目描述")
-@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), help="完整项目 JSON 请求体")
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), help="完整项目 JSON 请求体；提供后忽略 --name 和 --description")
 @idempotency_key_option
 @click.pass_context
 def create_project_cmd(ctx: click.Context, name: str | None, description: str | None, payload_file: str | None) -> None:
-    """创建新项目。"""
+    """创建新项目；未使用 --payload-file 时必须提供 --name。"""
 
     try:
         if payload_file:
@@ -107,7 +113,7 @@ def create_project_cmd(ctx: click.Context, name: str | None, description: str | 
         handle_api_error("创建项目失败", err)
 
 
-@project_group.command("update")
+@openapi_command(project_group, "update", contract("PATCH", "/api/v1/projects/{project_id}"))
 @click.argument("project_id", type=int)
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="项目更新 JSON 请求体")
 @idempotency_key_option
@@ -127,7 +133,7 @@ def project_configuration_group() -> None:
     """项目结构化展示配置。"""
 
 
-@project_configuration_group.command("get")
+@openapi_command(project_configuration_group, "get", contract("GET", "/api/v1/projects/{project_id}/configuration"))
 @click.argument("project_id", type=int)
 @click.pass_context
 def get_project_configuration_cmd(ctx: click.Context, project_id: int) -> None:
@@ -139,7 +145,12 @@ def get_project_configuration_cmd(ctx: click.Context, project_id: int) -> None:
         handle_api_error("获取项目配置失败", err)
 
 
-@project_configuration_group.command("update")
+@openapi_command(
+    project_configuration_group,
+    "update",
+    contract("PUT", "/api/v1/projects/{project_id}/configuration"),
+    examples=("wp project configuration update 7 --payload-file ./configuration.json --idempotency-key project-7-config",),
+)
 @click.argument("project_id", type=int)
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="项目配置 JSON 请求体")
 @idempotency_key_option
@@ -159,7 +170,7 @@ def project_route_group() -> None:
     """项目路由树。"""
 
 
-@project_route_group.command("get")
+@openapi_command(project_route_group, "get", contract("GET", "/api/v1/projects/{project_id}/route-tree"))
 @click.argument("project_id", type=int)
 @click.pass_context
 def get_project_route_cmd(ctx: click.Context, project_id: int) -> None:
@@ -171,7 +182,12 @@ def get_project_route_cmd(ctx: click.Context, project_id: int) -> None:
         handle_api_error("获取项目路由树失败", err)
 
 
-@project_route_group.command("replace")
+@openapi_command(
+    project_route_group,
+    "replace",
+    contract("PUT", "/api/v1/projects/{project_id}/route-tree"),
+    examples=("wp project route replace 7 --route-file ./route-tree.json --idempotency-key project-7-route",),
+)
 @click.argument("project_id", type=int)
 @click.option("--route-file", type=click.Path(exists=True, dir_okay=False), required=True, help="完整路由树 JSON 文件")
 @idempotency_key_option
@@ -186,9 +202,9 @@ def replace_project_route_cmd(ctx: click.Context, project_id: int, route_file: s
         handle_api_error("替换项目路由树失败", err)
 
 
-@project_group.command("apply-style")
+@openapi_command(project_group, "apply-style", contract("POST", "/api/v1/projects/{project_id}/apply-style"))
 @click.argument("project_id", type=int)
-@click.option("--style-id", type=int, required=True)
+@click.option("--style-id", type=int, required=True, help="要复制为项目独立配置快照的工作空间样式 ID")
 @idempotency_key_option
 @click.pass_context
 def apply_project_style_cmd(ctx: click.Context, project_id: int, style_id: int) -> None:
@@ -205,9 +221,9 @@ def project_build_assets_group() -> None:
     """项目构建额外资源配置，不启动构建。"""
 
 
-@project_build_assets_group.command("update")
+@openapi_command(project_build_assets_group, "update", contract("PUT", "/api/v1/projects/{project_id}/build-assets"))
 @click.argument("project_id", type=int)
-@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True)
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="包含完整额外资源名称列表的 JSON 请求体")
 @idempotency_key_option
 @click.pass_context
 def update_project_build_assets_cmd(ctx: click.Context, project_id: int, payload_file: str) -> None:
@@ -220,14 +236,19 @@ def update_project_build_assets_cmd(ctx: click.Context, project_id: int, payload
         handle_api_error("更新项目构建资源配置失败", err)
 
 
-@project_group.command("archive")
+@openapi_command(
+    project_group,
+    "archive",
+    contract("POST", "/api/v1/projects/{project_id}/archive", "提供 PROJECT_ID 时"),
+    contract("POST", "/api/v1/projects/batch-archive", "提供 --ids-file 时"),
+)
 @click.argument("project_id", type=int, required=False)
 @click.option("--ids-file", type=click.Path(exists=True, dir_okay=False), help="批量归档 ID JSON 数组")
-@click.option("--yes", "-y", is_flag=True, help="跳过确认直接归档")
+@click.option("--yes", "-y", is_flag=True, help="仅在用户已明确授权归档时跳过交互确认")
 @idempotency_key_option
 @click.pass_context
 def archive_project_cmd(ctx: click.Context, project_id: int | None, ids_file: str | None, yes: bool) -> None:
-    """归档项目。"""
+    """归档单个项目或 JSON 数组指定的一批项目；两种目标输入只能选一种。"""
 
     try:
         client = get_client(ctx)

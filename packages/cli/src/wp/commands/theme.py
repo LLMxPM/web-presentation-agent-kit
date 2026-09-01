@@ -6,7 +6,7 @@ import click
 
 from wp.client import ApiClient, ApiClientError
 from wp.config import get_profile, load_config
-from wp.formatter import print_error, print_json, print_success, print_table
+from wp.formatter import print_error, print_json, print_table
 from wp.commands.common import (
     confirm_archive,
     get_client,
@@ -17,6 +17,7 @@ from wp.commands.common import (
     require_ids,
     require_object,
 )
+from wp.openapi_help import contract, openapi_command
 
 
 @click.group("theme")
@@ -24,7 +25,7 @@ def theme_group() -> None:
     """工作空间主题管理。"""
 
 
-@theme_group.command("list")
+@openapi_command(theme_group, "list", contract("GET", "/api/v1/themes"))
 @click.option("--page", default=1, type=int, help="页码")
 @click.option("--page-size", default=50, type=int, help="每页数量")
 @click.pass_context
@@ -49,7 +50,7 @@ def list_themes_cmd(ctx: click.Context, page: int, page_size: int) -> None:
         raise SystemExit(1)
 
 
-@theme_group.command("get")
+@openapi_command(theme_group, "get", contract("GET", "/api/v1/themes/{theme_id}"))
 @click.argument("theme_id", type=int)
 @click.pass_context
 def get_theme_cmd(ctx: click.Context, theme_id: int) -> None:
@@ -78,15 +79,20 @@ def get_theme_cmd(ctx: click.Context, theme_id: int) -> None:
         raise SystemExit(1)
 
 
-@theme_group.command("create")
+@openapi_command(
+    theme_group,
+    "create",
+    contract("POST", "/api/v1/themes"),
+    examples=('wp theme create --key light-corporate --name "企业浅色" --idempotency-key theme-light-corporate',),
+)
 @click.option("--key", "-k", help="主题唯一标识 (例如 light-corporate)")
 @click.option("--name", "-n", help="主题名称")
 @click.option("--description", "-d", help="主题描述")
-@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), help="完整主题 JSON 请求体")
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), help="完整主题 JSON 请求体；提供后忽略 --key、--name 和 --description")
 @idempotency_key_option
 @click.pass_context
 def create_theme_cmd(ctx: click.Context, key: str | None, name: str | None, description: str | None, payload_file: str | None) -> None:
-    """创建新主题。"""
+    """创建新主题；直接参数模式必须提供不可变 key 和名称。"""
 
     try:
         if payload_file:
@@ -100,9 +106,9 @@ def create_theme_cmd(ctx: click.Context, key: str | None, name: str | None, desc
         handle_api_error("创建主题失败", err)
 
 
-@theme_group.command("update")
+@openapi_command(theme_group, "update", contract("PATCH", "/api/v1/themes/{theme_id}"))
 @click.argument("theme_id", type=int)
-@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True)
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="名称、说明或完整色板更新 JSON 请求体；不能修改 key")
 @idempotency_key_option
 @click.pass_context
 def update_theme_cmd(ctx: click.Context, theme_id: int, payload_file: str) -> None:
@@ -114,9 +120,9 @@ def update_theme_cmd(ctx: click.Context, theme_id: int, payload_file: str) -> No
         handle_api_error("更新主题失败", err)
 
 
-@theme_group.command("copy")
+@openapi_command(theme_group, "copy", contract("POST", "/api/v1/themes/{theme_id}/copy"))
 @click.argument("theme_id", type=int)
-@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True)
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="新主题 key、名称和说明 JSON 请求体")
 @idempotency_key_option
 @click.pass_context
 def copy_theme_cmd(ctx: click.Context, theme_id: int, payload_file: str) -> None:
@@ -128,14 +134,19 @@ def copy_theme_cmd(ctx: click.Context, theme_id: int, payload_file: str) -> None
         handle_api_error("复制主题失败", err)
 
 
-@theme_group.command("archive")
+@openapi_command(
+    theme_group,
+    "archive",
+    contract("POST", "/api/v1/themes/{theme_id}/archive", "提供 THEME_ID 时"),
+    contract("POST", "/api/v1/themes/batch-archive", "提供 --ids-file 时"),
+)
 @click.argument("theme_id", type=int, required=False)
-@click.option("--ids-file", type=click.Path(exists=True, dir_okay=False))
-@click.option("--yes", "-y", is_flag=True, help="跳过确认直接归档")
+@click.option("--ids-file", type=click.Path(exists=True, dir_okay=False), help="批量归档的正整数 ID JSON 数组")
+@click.option("--yes", "-y", is_flag=True, help="仅在用户已明确授权归档时跳过交互确认")
 @idempotency_key_option
 @click.pass_context
 def archive_theme_cmd(ctx: click.Context, theme_id: int | None, ids_file: str | None, yes: bool) -> None:
-    """归档主题。"""
+    """归档单个主题或 JSON 数组指定的一批主题；两种目标输入只能选一种。"""
 
     try:
         client = get_client(ctx)

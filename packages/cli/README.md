@@ -41,10 +41,11 @@ wp component list --scope suggested --project-id <project_id>
 wp asset content get <asset_id>
 wp theme list
 wp style list
-wp --json guide list
 wp job wait <job_id>
 ```
 
 复杂写入参数使用 `--payload-file`、`--edits-file`、`--content-file`、`--route-file` 和 `--ids-file`。Build、产物下载、Agent 运行、图片能力、Restore 和 MCP 不属于当前 CLI。
+
+叶子命令的 `--help` 会从当前 Profile 的 Backend `/openapi.json` 加载请求参数和完整 Schema；服务不可达时仍返回本地语法帮助，不缓存 Schema。
 
 写入命令支持 `--idempotency-key <key>`；网络超时后需要重放同一业务请求时复用原 key，不要把同一个 key 用于不同请求。

@@ -14,29 +14,7 @@ wp --json component validate <component_id> --mode content --source-file ./Compo
 
 `current` 检查当前内容，`content` 检查完整候选源码，`edits` 检查基于当前对象的结构化编辑；具体参数以命令帮助为准。校验不通过是诊断结果，不是写入成功。
 
-### `edits.json` 格式
-
-`--edits-file` 必须指向一个 JSON 数组。数组中的每个对象都必须包含 `type`，且只能使用以下三种编辑类型：
-
-| `type` | 必填字段 | 作用 |
-| --- | --- | --- |
-| `replace_exact` | `old_text`、`new_text` | 唯一命中 `old_text` 后替换为 `new_text`；`new_text` 可以为空字符串。 |
-| `insert_after` | `anchor_text`、`new_text` | 在唯一命中的 `anchor_text` 后插入 `new_text`。 |
-| `rewrite_file` | `content` | 用完整的 `content` 重写源码文件。 |
-
-例如，`replace_exact` 的编辑文件是：
-
-```json
-[
-  {
-    "type": "replace_exact",
-    "old_text": "旧文本",
-    "new_text": "新文本"
-  }
-]
-```
-
-`old_text` 和 `anchor_text` 必须来自最新源码，并且在应用当时各自唯一命中。`replace_text`、`replace` 等未列出的类型不受支持。
+`--edits-file` 的完整结构以 `wp page edit --help` 或 `wp component edit --help` 展示的当前 OpenAPI Schema 为准。所有匹配片段必须来自最新源码，并在应用时唯一命中。
 
 页面/组件创建、源码编辑以及组件复杂 metadata 更新本身会自动校验。成功写入后不必为了“证明已经校验”重复调用同一 `validate`；应重新读取对象并截图。失败时优先使用返回的短 `code`、`message`、定位、`scenario` 和 `profile`，需要更多事实再加 `--detail`。
 

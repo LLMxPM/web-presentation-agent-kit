@@ -19,7 +19,7 @@ def test_new_command_groups_are_registered() -> None:
 
     result = CliRunner().invoke(main, ["--help"])
     assert result.exit_code == 0
-    for command in ("system", "standards", "guide", "runtime-kit", "font", "job"):
+    for command in ("system", "standards", "runtime-kit", "font", "job"):
         assert command in result.output
 
     for args in (

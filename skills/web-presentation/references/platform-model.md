@@ -41,9 +41,9 @@ Web Presentation 的核心边界是“当前工作空间”。所有资源归属
 
 ## 事实来源优先级
 
-1. 当前 CLI 帮助和 Backend 返回的实际结果；
-2. `wp standards`、`wp guide`、`workspace capabilities`；
-3. External API v1 契约和本 Skill references；
+1. 当前 CLI 叶子命令帮助、OpenAPI Schema 和 Backend 返回的实际结果；
+2. `wp standards`、`wp runtime-kit list/get`、`workspace capabilities`；
+3. External API v1 文档和本 Skill references；
 4. 旧截图、旧源码、对象名称和模型记忆。
 
 冲突时重新读取当前对象和指南，不根据名称或历史文档猜测写入字段。

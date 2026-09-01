@@ -21,6 +21,7 @@ from wp.commands.common import (
 )
 from wp.config import get_profile, load_config
 from wp.formatter import print_table
+from wp.openapi_help import contract, openapi_command
 
 
 @click.group("component")
@@ -28,12 +29,12 @@ def component_group() -> None:
     """工作空间组件管理与 Mutation 任务。"""
 
 
-@component_group.command("list")
-@click.option("--page", default=1, type=int)
-@click.option("--page-size", default=50, type=int)
-@click.option("--keyword")
-@click.option("--scope", type=click.Choice(["all", "suggested"]), default="all")
-@click.option("--project-id", type=int)
+@openapi_command(component_group, "list", contract("GET", "/api/v1/components"))
+@click.option("--page", default=1, type=int, show_default=True, help="结果页码")
+@click.option("--page-size", default=50, type=int, show_default=True, help="每页返回数量")
+@click.option("--keyword", help="按名称、导入标识或摘要搜索")
+@click.option("--scope", type=click.Choice(["all", "suggested"]), default="all", show_default=True, help="查询全部组件或指定项目的建议组件")
+@click.option("--project-id", type=int, help="scope=suggested 时必填的项目 ID")
 @click.pass_context
 def list_components_cmd(ctx: click.Context, page: int, page_size: int, keyword: str | None, scope: str, project_id: int | None) -> None:
     """查询工作空间组件或项目建议组件。"""
@@ -55,7 +56,7 @@ def list_components_cmd(ctx: click.Context, page: int, page_size: int, keyword: 
         handle_api_error("获取组件列表失败", err)
 
 
-@component_group.command("get")
+@openapi_command(component_group, "get", contract("GET", "/api/v1/components/{component_id}"))
 @click.argument("component_id", type=int)
 @click.pass_context
 def get_component_cmd(ctx: click.Context, component_id: int) -> None:
@@ -67,16 +68,21 @@ def get_component_cmd(ctx: click.Context, component_id: int) -> None:
         handle_api_error("获取组件失败", err)
 
 
-@component_group.command("create")
-@click.option("--name")
-@click.option("--import-name")
-@click.option("--file", "file_path", type=click.Path(exists=True, dir_okay=False))
-@click.option("--type", "component_type", default="content")
-@click.option("--description")
-@click.option("--preview-schema-file", type=click.Path(exists=True, dir_okay=False))
-@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False))
-@click.option("--wait/--no-wait", default=True)
-@click.option("--timeout", type=float, default=120.0, show_default=True)
+@openapi_command(
+    component_group,
+    "create",
+    contract("POST", "/api/v1/components"),
+    examples=('wp component create --name "指标卡" --import-name MetricCard --file ./MetricCard.vue --type content --idempotency-key component-metric-card',),
+)
+@click.option("--name", help="组件显示名称；直接参数模式必填")
+@click.option("--import-name", help="稳定导入标识；直接参数模式必填")
+@click.option("--file", "file_path", type=click.Path(exists=True, dir_okay=False), help="完整 Vue 3 SFC 文件；直接参数模式必填")
+@click.option("--type", "component_type", default="content", show_default=True, help="组件类型：content、page、atomic 或服务端兼容别名")
+@click.option("--description", help="组件用途和复用边界说明")
+@click.option("--preview-schema-file", type=click.Path(exists=True, dir_okay=False), help="覆盖请求体 preview_schema 的 JSON 对象")
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), help="完整组件创建 JSON 请求体；提供后忽略其它内容参数")
+@click.option("--wait/--no-wait", default=True, help="等待任务终态；--no-wait 只返回入队结果")
+@click.option("--timeout", type=float, default=120.0, show_default=True, help="等待任务终态的最长秒数")
 @idempotency_key_option
 @click.pass_context
 def create_component_cmd(
@@ -91,7 +97,7 @@ def create_component_cmd(
     wait: bool,
     timeout: float,
 ) -> None:
-    """提交组件创建 Mutation Job。"""
+    """提交组件创建 Mutation Job；直接参数模式必须提供名称、导入标识和完整 SFC。"""
 
     profile = get_profile(load_config(), ctx.obj.get("profile"))
     workspace_id = ctx.obj.get("workspace_id") or profile.default_workspace_id
@@ -122,12 +128,18 @@ def create_component_cmd(
         handle_api_error("提交组件创建失败", err)
 
 
-@component_group.command("update")
+@openapi_command(
+    component_group,
+    "update",
+    contract("PATCH", "/api/v1/components/{component_id}", "仅更新 name 或 summary 时"),
+    contract("POST", "/api/v1/jobs/mutations/components/metadata", "包含 import_name、component_type 或 preview_schema 时"),
+    examples=("wp component update 15 --payload-file ./component-update.json --idempotency-key component-15-metadata",),
+)
 @click.argument("component_id", type=int)
-@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True)
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="组件元数据 JSON 请求体；复杂字段会自动进入异步任务")
 @click.option("--preview-schema-file", type=click.Path(exists=True, dir_okay=False), help="覆盖 payload 中的 Preview Schema JSON")
-@click.option("--wait/--no-wait", default=True)
-@click.option("--timeout", type=float, default=120.0, show_default=True)
+@click.option("--wait/--no-wait", default=True, help="复杂字段更新时等待任务终态；轻量更新忽略此选项")
+@click.option("--timeout", type=float, default=120.0, show_default=True, help="等待复杂字段更新任务的最长秒数")
 @idempotency_key_option
 @click.pass_context
 def update_component_cmd(
@@ -160,13 +172,18 @@ def update_component_cmd(
         handle_api_error("更新组件失败", err)
 
 
-@component_group.command("edit")
+@openapi_command(
+    component_group,
+    "edit",
+    contract("POST", "/api/v1/components/{component_id}/edits"),
+    examples=("wp component edit 15 --base-version-no 2 --base-draft-hash <hash> --edits-file ./edits.json --idempotency-key component-15-edit",),
+)
 @click.argument("component_id", type=int)
-@click.option("--edits-file", type=click.Path(exists=True, dir_okay=False), required=True)
-@click.option("--base-version-no", type=int, required=True)
-@click.option("--base-draft-hash", required=True)
-@click.option("--wait/--no-wait", default=True)
-@click.option("--timeout", type=float, default=120.0, show_default=True)
+@click.option("--edits-file", type=click.Path(exists=True, dir_okay=False), required=True, help="结构化编辑 JSON 数组；完整字段以当前 OpenAPI Schema 为准")
+@click.option("--base-version-no", type=int, required=True, help="component get 返回的最新发布版本基线")
+@click.option("--base-draft-hash", required=True, help="component get 返回的最新草稿哈希基线")
+@click.option("--wait/--no-wait", default=True, help="等待任务终态；--no-wait 只返回入队结果")
+@click.option("--timeout", type=float, default=120.0, show_default=True, help="等待任务终态的最长秒数")
 @idempotency_key_option
 @click.pass_context
 def edit_component_cmd(ctx: click.Context, component_id: int, edits_file: str, base_version_no: int, base_draft_hash: str, wait: bool, timeout: float) -> None:
@@ -189,7 +206,7 @@ def component_version_group() -> None:
     """组件历史发布版本。"""
 
 
-@component_version_group.command("list")
+@openapi_command(component_version_group, "list", contract("GET", "/api/v1/components/{component_id}/versions"))
 @click.argument("component_id", type=int)
 @click.pass_context
 def list_component_versions_cmd(ctx: click.Context, component_id: int) -> None:
@@ -201,7 +218,7 @@ def list_component_versions_cmd(ctx: click.Context, component_id: int) -> None:
         handle_api_error("获取组件版本失败", err)
 
 
-@component_version_group.command("get")
+@openapi_command(component_version_group, "get", contract("GET", "/api/v1/components/{component_id}/versions/{version_no}"))
 @click.argument("component_id", type=int)
 @click.argument("version_no", type=int)
 @click.pass_context
@@ -214,7 +231,7 @@ def get_component_version_cmd(ctx: click.Context, component_id: int, version_no:
         handle_api_error("获取组件版本内容失败", err)
 
 
-@component_group.command("dependencies")
+@openapi_command(component_group, "dependencies", contract("GET", "/api/v1/components/{component_id}/dependencies"))
 @click.argument("component_id", type=int)
 @click.pass_context
 def component_dependencies_cmd(ctx: click.Context, component_id: int) -> None:
@@ -226,13 +243,18 @@ def component_dependencies_cmd(ctx: click.Context, component_id: int) -> None:
         handle_api_error("获取组件依赖失败", err)
 
 
-@component_group.command("validate")
+@openapi_command(
+    component_group,
+    "validate",
+    contract("POST", "/api/v1/validate/entity"),
+    examples=("wp --json component validate 15 --mode content --source-file ./MetricCard.vue --detail",),
+)
 @click.argument("component_id", type=int)
-@click.option("--mode", type=click.Choice(["current", "content", "edits"]), default="current")
-@click.option("--source-file", type=click.Path(exists=True, dir_okay=False))
-@click.option("--edits-file", type=click.Path(exists=True, dir_okay=False))
-@click.option("--preview-schema-file", type=click.Path(exists=True, dir_okay=False))
-@click.option("--detail", is_flag=True)
+@click.option("--mode", type=click.Choice(["current", "content", "edits"]), default="current", show_default=True, help="校验当前草稿、完整候选源码或结构化 edits")
+@click.option("--source-file", type=click.Path(exists=True, dir_okay=False), help="content 模式必填的完整候选 SFC")
+@click.option("--edits-file", type=click.Path(exists=True, dir_okay=False), help="edits 模式必填的结构化编辑 JSON 数组")
+@click.option("--preview-schema-file", type=click.Path(exists=True, dir_okay=False), help="可选的候选 preview_schema JSON 对象")
+@click.option("--detail", is_flag=True, help="返回完整编译、渲染和布局诊断")
 @click.pass_context
 def validate_component_cmd(ctx: click.Context, component_id: int, mode: str, source_file: str | None, edits_file: str | None, preview_schema_file: str | None, detail: bool) -> None:
     """校验组件当前或候选源码。"""
@@ -254,10 +276,10 @@ def validate_component_cmd(ctx: click.Context, component_id: int, mode: str, sou
         handle_api_error("组件校验失败", err)
 
 
-@component_group.command("publish")
+@openapi_command(component_group, "publish", contract("POST", "/api/v1/components/{component_id}/publish"))
 @click.argument("component_id", type=int)
-@click.option("--release-name")
-@click.option("--change-note")
+@click.option("--release-name", help="本次发布版本的可读名称")
+@click.option("--change-note", help="本次发布的变更说明")
 @idempotency_key_option
 @click.pass_context
 def publish_component_cmd(ctx: click.Context, component_id: int, release_name: str | None, change_note: str | None) -> None:
@@ -269,14 +291,19 @@ def publish_component_cmd(ctx: click.Context, component_id: int, release_name: s
         handle_api_error("发布组件失败", err)
 
 
-@component_group.command("archive")
+@openapi_command(
+    component_group,
+    "archive",
+    contract("POST", "/api/v1/components/{component_id}/archive", "提供 COMPONENT_ID 时"),
+    contract("POST", "/api/v1/components/batch-archive", "提供 --ids-file 时"),
+)
 @click.argument("component_id", type=int, required=False)
-@click.option("--ids-file", type=click.Path(exists=True, dir_okay=False))
-@click.option("--yes", is_flag=True)
+@click.option("--ids-file", type=click.Path(exists=True, dir_okay=False), help="批量归档的正整数 ID JSON 数组")
+@click.option("--yes", is_flag=True, help="仅在用户已明确授权归档时跳过交互确认")
 @idempotency_key_option
 @click.pass_context
 def archive_component_cmd(ctx: click.Context, component_id: int | None, ids_file: str | None, yes: bool) -> None:
-    """归档单个或一批组件。"""
+    """归档单个组件或 JSON 数组指定的一批组件；两种目标输入只能选一种。"""
 
     try:
         client = get_client(ctx)

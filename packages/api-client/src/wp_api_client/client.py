@@ -153,11 +153,32 @@ class ApiClient:
         resp = self._request("GET", url, params=params, headers=headers)
         return self._handle_response(resp)
 
-    def get_operation_guide(self, operation_key: str | None = None) -> Any:
-        """读取 Guides 索引或指定 operation 的版本化详情。"""
+    def get_openapi_schema(self, *, timeout_seconds: float = 2.0) -> dict[str, Any]:
+        """读取公开 OpenAPI；不携带 PAT、工作空间或其它业务请求头。"""
 
-        path = "/guides" if operation_key is None else f"/guides/{operation_key}"
-        return self.get(path)
+        try:
+            response = self.client.get(
+                "/openapi.json",
+                headers={"Accept": "application/json", "User-Agent": self.user_agent},
+                timeout=timeout_seconds,
+            )
+        except httpx.TimeoutException as exc:
+            raise ApiClientError("读取 OpenAPI 超时。", status_code=504, code="OPENAPI_TIMEOUT") from exc
+        except httpx.RequestError as exc:
+            raise ApiClientError("无法连接服务端读取 OpenAPI。", status_code=503, code="OPENAPI_UNAVAILABLE") from exc
+        if not response.is_success:
+            raise ApiClientError(
+                f"读取 OpenAPI 失败：HTTP {response.status_code}",
+                status_code=response.status_code,
+                code="OPENAPI_UNAVAILABLE",
+            )
+        try:
+            payload = response.json()
+        except (TypeError, ValueError) as exc:
+            raise ApiClientError("OpenAPI 响应不是合法 JSON。", code="OPENAPI_INVALID") from exc
+        if not isinstance(payload, dict) or not isinstance(payload.get("paths"), dict):
+            raise ApiClientError("OpenAPI 响应缺少 paths。", code="OPENAPI_INVALID")
+        return payload
 
     def get_standard(self, entity_type: str) -> dict[str, Any]:
         """读取页面或组件开发标准。"""

@@ -8,7 +8,7 @@
 | --- | --- |
 | 系统 | `wp system version`, `wp system health` |
 | 标准 | `wp standards page`, `wp standards component` |
-| 指南 | `wp guide list`, `wp guide get <operation>` |
+| 动态请求契约 | 目标叶子命令的 `--help` 从 Backend OpenAPI 展示 |
 | Runtime Kit | `wp runtime-kit list`, `wp runtime-kit get <item>` |
 | 字体 | `wp font list` |
 | 项目 | `list`, `get`, `create`, `update`, `archive`, `configuration get/update`, `route get/replace`, `apply-style`, `build-assets update` |

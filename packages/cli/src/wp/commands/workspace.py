@@ -7,6 +7,7 @@ import click
 from wp.client import ApiClient, ApiClientError
 from wp.config import get_profile, load_config, save_config
 from wp.formatter import print_error, print_json, print_success, print_table
+from wp.openapi_help import contract, openapi_command
 
 
 @click.group("workspace")
@@ -14,7 +15,7 @@ def workspace_group() -> None:
     """工作空间操作。"""
 
 
-@workspace_group.command("list")
+@openapi_command(workspace_group, "list", contract("GET", "/api/v1/workspaces"))
 @click.pass_context
 def list_workspaces_cmd(ctx: click.Context) -> None:
     """列出当前令牌可访问的所有工作空间。"""
@@ -41,7 +42,7 @@ def list_workspaces_cmd(ctx: click.Context) -> None:
         raise SystemExit(1)
 
 
-@workspace_group.command("use")
+@openapi_command(workspace_group, "use", contract("GET", "/api/v1/workspaces/{workspace_id}"))
 @click.argument("workspace_id", type=int)
 @click.pass_context
 def use_workspace_cmd(ctx: click.Context, workspace_id: int) -> None:
@@ -61,8 +62,8 @@ def use_workspace_cmd(ctx: click.Context, workspace_id: int) -> None:
         raise SystemExit(1)
 
 
-@workspace_group.command("capabilities")
-@click.option("--workspace-id", "-w", type=int, help="工作空间 ID")
+@openapi_command(workspace_group, "capabilities", contract("GET", "/api/v1/workspaces/{workspace_id}/capabilities"))
+@click.option("--workspace-id", "-w", type=int, help="目标工作空间 ID；未提供时使用全局选项或 Profile 默认值")
 @click.pass_context
 def get_capabilities_cmd(ctx: click.Context, workspace_id: int | None) -> None:
     """查询当前令牌在指定工作空间的能力矩阵与可用操作列表。"""

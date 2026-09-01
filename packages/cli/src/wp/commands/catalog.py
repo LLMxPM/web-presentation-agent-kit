@@ -6,6 +6,7 @@ import click
 
 from wp.client import ApiClientError
 from wp.commands.common import get_client, handle_api_error, output_result
+from wp.openapi_help import contract, openapi_command
 
 
 @click.group("runtime-kit")
@@ -13,13 +14,13 @@ def runtime_kit_group() -> None:
     """Runtime Kit 公开能力目录。"""
 
 
-@runtime_kit_group.command("list")
-@click.option("--keyword")
-@click.option("--category")
-@click.option("--kind")
-@click.option("--base-name")
-@click.option("--version-no", type=int)
-@click.option("--include-all-versions", is_flag=True)
+@openapi_command(runtime_kit_group, "list", contract("GET", "/api/v1/runtime-kit"))
+@click.option("--keyword", help="按名称、说明或导入路径搜索")
+@click.option("--category", help="按服务端返回的能力分类筛选")
+@click.option("--kind", help="按能力类型筛选，例如 component、composable、util 或 type")
+@click.option("--base-name", help="按不含版本号的能力基础名称筛选")
+@click.option("--version-no", type=int, help="筛选指定公开版本号")
+@click.option("--include-all-versions", is_flag=True, help="返回所有公开版本；默认只返回推荐版本")
 @click.pass_context
 def runtime_kit_list_cmd(
     ctx: click.Context,
@@ -50,7 +51,7 @@ def runtime_kit_list_cmd(
         handle_api_error("获取 Runtime Kit 目录失败", err)
 
 
-@runtime_kit_group.command("get")
+@openapi_command(runtime_kit_group, "get", contract("GET", "/api/v1/runtime-kit/{item}"))
 @click.argument("item")
 @click.pass_context
 def runtime_kit_get_cmd(ctx: click.Context, item: str) -> None:
@@ -67,10 +68,10 @@ def font_group() -> None:
     """工作空间注册字体目录。"""
 
 
-@font_group.command("list")
-@click.option("--page", default=1, type=int)
-@click.option("--page-size", default=50, type=int)
-@click.option("--keyword")
+@openapi_command(font_group, "list", contract("GET", "/api/v1/fonts"))
+@click.option("--page", default=1, type=int, show_default=True, help="结果页码")
+@click.option("--page-size", default=50, type=int, show_default=True, help="每页返回数量")
+@click.option("--keyword", help="按字体名称或逻辑名搜索")
 @click.pass_context
 def font_list_cmd(ctx: click.Context, page: int, page_size: int, keyword: str | None) -> None:
     """查询工作空间注册字体。"""

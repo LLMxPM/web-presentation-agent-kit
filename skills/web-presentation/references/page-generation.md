@@ -95,19 +95,7 @@ wp page edit <page_id> \
   --idempotency-key <key>
 ```
 
-`edits.json` 是 JSON 数组，每个元素的 `type` 只能是 `replace_exact`、`insert_after` 或 `rewrite_file`。例如：
-
-```json
-[
-  {
-    "type": "replace_exact",
-    "old_text": "旧文本",
-    "new_text": "新文本"
-  }
-]
-```
-
-三种类型的字段结构和唯一命中约束见[校验与交付](./validation-and-delivery.md)。
+`edits.json` 必须使用当前 `wp page edit --help` 显示的结构化编辑 Schema；匹配片段来自最新源码且必须唯一命中。
 
 新建页面使用完整 SFC：
 

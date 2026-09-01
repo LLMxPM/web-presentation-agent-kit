@@ -17,7 +17,7 @@ from wp.commands.project import project_group
 from wp.commands.style import style_group
 from wp.commands.theme import theme_group
 from wp.commands.workspace import workspace_group
-from wp.commands.system import guide_group, standards_group, system_group
+from wp.commands.system import standards_group, system_group
 
 
 @click.group()
@@ -48,7 +48,6 @@ main.add_command(doctor_cmd)
 main.add_command(profile_group)
 main.add_command(system_group)
 main.add_command(standards_group)
-main.add_command(guide_group)
 main.add_command(runtime_kit_group)
 main.add_command(font_group)
 

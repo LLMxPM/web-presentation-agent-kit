@@ -6,7 +6,7 @@ import click
 
 from wp.client import ApiClient, ApiClientError
 from wp.config import get_profile, load_config
-from wp.formatter import print_error, print_json, print_success, print_table
+from wp.formatter import print_error, print_json, print_table
 from wp.commands.common import (
     confirm_archive,
     get_client,
@@ -17,6 +17,7 @@ from wp.commands.common import (
     require_ids,
     require_object,
 )
+from wp.openapi_help import contract, openapi_command
 
 
 @click.group("style")
@@ -24,7 +25,7 @@ def style_group() -> None:
     """工作空间样式方案管理。"""
 
 
-@style_group.command("list")
+@openapi_command(style_group, "list", contract("GET", "/api/v1/styles"))
 @click.option("--page", default=1, type=int, help="页码")
 @click.option("--page-size", default=50, type=int, help="每页数量")
 @click.pass_context
@@ -49,7 +50,7 @@ def list_styles_cmd(ctx: click.Context, page: int, page_size: int) -> None:
         raise SystemExit(1)
 
 
-@style_group.command("get")
+@openapi_command(style_group, "get", contract("GET", "/api/v1/styles/{style_id}"))
 @click.argument("style_id", type=int)
 @click.pass_context
 def get_style_cmd(ctx: click.Context, style_id: int) -> None:
@@ -78,18 +79,23 @@ def get_style_cmd(ctx: click.Context, style_id: int) -> None:
         raise SystemExit(1)
 
 
-@style_group.command("create")
+@openapi_command(
+    style_group,
+    "create",
+    contract("POST", "/api/v1/styles"),
+    examples=("wp style create --payload-file ./style.json --idempotency-key style-corporate",),
+)
 @click.option("--name", "-n", help="样式方案名称")
 @click.option("--description", "-d", help="样式描述")
 @click.option(
     "--payload-file",
     type=click.Path(exists=True, dir_okay=False),
-    help="完整样式创建 JSON；支持 configuration.presentation 或顶层 page_width 等展示字段",
+    help="完整样式创建 JSON；提供后忽略其它参数，支持 configuration.presentation 嵌套或顶层 page_width 等展示字段",
 )
 @idempotency_key_option
 @click.pass_context
 def create_style_cmd(ctx: click.Context, name: str | None, description: str | None, payload_file: str | None) -> None:
-    """创建新样式方案。"""
+    """创建新样式方案；直接参数模式必须提供名称。"""
 
     try:
         if payload_file:
@@ -103,9 +109,9 @@ def create_style_cmd(ctx: click.Context, name: str | None, description: str | No
         handle_api_error("创建样式方案失败", err)
 
 
-@style_group.command("update")
+@openapi_command(style_group, "update", contract("PATCH", "/api/v1/styles/{style_id}"))
 @click.argument("style_id", type=int)
-@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True)
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="样式元数据或 configuration 更新 JSON 请求体")
 @idempotency_key_option
 @click.pass_context
 def update_style_cmd(ctx: click.Context, style_id: int, payload_file: str) -> None:
@@ -117,9 +123,9 @@ def update_style_cmd(ctx: click.Context, style_id: int, payload_file: str) -> No
         handle_api_error("更新样式失败", err)
 
 
-@style_group.command("copy")
+@openapi_command(style_group, "copy", contract("POST", "/api/v1/styles/{style_id}/copy"))
 @click.argument("style_id", type=int)
-@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True)
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="样式副本名称和说明 JSON 请求体")
 @idempotency_key_option
 @click.pass_context
 def copy_style_cmd(ctx: click.Context, style_id: int, payload_file: str) -> None:
@@ -131,10 +137,15 @@ def copy_style_cmd(ctx: click.Context, style_id: int, payload_file: str) -> None
         handle_api_error("复制样式失败", err)
 
 
-@style_group.command("archive")
+@openapi_command(
+    style_group,
+    "archive",
+    contract("POST", "/api/v1/styles/{style_id}/archive", "提供 STYLE_ID 时"),
+    contract("POST", "/api/v1/styles/batch-archive", "提供 --ids-file 时"),
+)
 @click.argument("style_id", type=int, required=False)
-@click.option("--ids-file", type=click.Path(exists=True, dir_okay=False))
-@click.option("--yes", "-y", is_flag=True, help="跳过确认直接归档")
+@click.option("--ids-file", type=click.Path(exists=True, dir_okay=False), help="批量归档的正整数 ID JSON 数组")
+@click.option("--yes", "-y", is_flag=True, help="仅在用户已明确授权归档时跳过交互确认")
 @idempotency_key_option
 @click.pass_context
 def archive_style_cmd(ctx: click.Context, style_id: int | None, ids_file: str | None, yes: bool) -> None:

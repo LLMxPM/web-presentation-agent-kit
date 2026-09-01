@@ -7,7 +7,7 @@ import click
 from wp.client import ApiClient, ApiClientError
 from wp.commands.screenshot import screenshot_cmd
 from wp.config import get_profile, load_config
-from wp.formatter import print_code, print_error, print_json, print_success, print_table
+from wp.formatter import print_code, print_error, print_json, print_table
 from wp.commands.common import (
     confirm_archive,
     get_client,
@@ -22,6 +22,7 @@ from wp.commands.common import (
     require_success_job,
     resolve_wait_job,
 )
+from wp.openapi_help import contract, openapi_command
 
 _PAGE_EDITS_FILE_HELP = (
     "页面编辑操作 JSON 数组；每项的 type 只能是 replace_exact、insert_after 或 rewrite_file。"
@@ -36,7 +37,7 @@ def page_group() -> None:
     """页面管理与 Mutation 任务。"""
 
 
-@page_group.command("list")
+@openapi_command(page_group, "list", contract("GET", "/api/v1/projects/{project_id}/pages"))
 @click.option("--project-id", "-p", required=True, type=int, help="项目 ID")
 @click.option("--page", default=1, type=int, help="页码")
 @click.option("--page-size", default=50, type=int, help="每页数量")
@@ -65,7 +66,7 @@ def list_pages_cmd(ctx: click.Context, project_id: int, page: int, page_size: in
         raise SystemExit(1)
 
 
-@page_group.command("get")
+@openapi_command(page_group, "get", contract("GET", "/api/v1/pages/{page_id}"))
 @click.argument("page_id", type=int)
 @click.pass_context
 def get_page_cmd(ctx: click.Context, page_id: int) -> None:
@@ -96,7 +97,7 @@ def get_page_cmd(ctx: click.Context, page_id: int) -> None:
         raise SystemExit(1)
 
 
-@page_group.command("source")
+@openapi_command(page_group, "source", contract("GET", "/api/v1/pages/{page_id}/source"))
 @click.argument("page_id", type=int)
 @click.pass_context
 def get_page_source_cmd(ctx: click.Context, page_id: int) -> None:
@@ -119,7 +120,7 @@ def get_page_source_cmd(ctx: click.Context, page_id: int) -> None:
         raise SystemExit(1)
 
 
-@page_group.command("update")
+@openapi_command(page_group, "update", contract("PATCH", "/api/v1/pages/{page_id}"))
 @click.argument("page_id", type=int)
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="页面更新 JSON 请求体")
 @idempotency_key_option
@@ -134,12 +135,17 @@ def update_page_cmd(ctx: click.Context, page_id: int, payload_file: str) -> None
         handle_api_error("更新页面失败", err)
 
 
-@page_group.command("create")
+@openapi_command(
+    page_group,
+    "create",
+    contract("POST", "/api/v1/pages"),
+    examples=('wp page create --project-id 7 --name "核心结论" --file ./Page.vue --idempotency-key page-7-core',),
+)
 @click.option("--project-id", "-p", type=int, help="所属项目 ID")
 @click.option("--name", "-n", help="页面标题")
 @click.option("--file", "-f", "file_path", type=click.Path(exists=True), help="Vue 源码文件路径")
 @click.option("--description", "-d", help="页面描述")
-@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), help="完整页面创建 JSON 请求体")
+@click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), help="完整页面创建 JSON 请求体；提供后忽略其它内容参数")
 @click.option("--wait/--no-wait", default=True, help="是否等待后台 Worker 编译与诊断完成 (默认等待)")
 @idempotency_key_option
 @click.pass_context
@@ -152,7 +158,7 @@ def create_page_cmd(
     payload_file: str | None,
     wait: bool,
 ) -> None:
-    """通过异步 Mutation 任务创建页面（带 AST 扫描与 Chromium 慢诊断）。"""
+    """通过 Mutation Job 创建并校验页面；直接参数模式必须提供项目、标题和完整 SFC 文件。"""
 
     try:
         if payload_file:
@@ -175,14 +181,19 @@ def create_page_cmd(
         handle_api_error("提交页面任务失败", err)
 
 
-@page_group.command("archive")
+@openapi_command(
+    page_group,
+    "archive",
+    contract("POST", "/api/v1/pages/{page_id}/archive", "提供 PAGE_ID 时"),
+    contract("POST", "/api/v1/pages/batch-archive", "提供 --ids-file 时"),
+)
 @click.argument("page_id", type=int, required=False)
 @click.option("--ids-file", type=click.Path(exists=True, dir_okay=False), help="批量归档 ID JSON 数组")
-@click.option("--yes", "-y", is_flag=True, help="跳过确认直接归档")
+@click.option("--yes", "-y", is_flag=True, help="仅在用户已明确授权归档时跳过交互确认")
 @idempotency_key_option
 @click.pass_context
 def archive_page_cmd(ctx: click.Context, page_id: int | None, ids_file: str | None, yes: bool) -> None:
-    """归档页面。"""
+    """归档单个页面或 JSON 数组指定的一批页面；两种目标输入只能选一种。"""
 
     try:
         client = get_client(ctx)
@@ -199,7 +210,7 @@ def archive_page_cmd(ctx: click.Context, page_id: int | None, ids_file: str | No
         handle_api_error("归档页面失败", err)
 
 
-@page_group.command("copy")
+@openapi_command(page_group, "copy", contract("POST", "/api/v1/pages/{page_id}/copy"))
 @click.argument("page_id", type=int)
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="页面复制 JSON 请求体")
 @idempotency_key_option
@@ -214,12 +225,17 @@ def copy_page_cmd(ctx: click.Context, page_id: int, payload_file: str) -> None:
         handle_api_error("复制页面失败", err)
 
 
-@page_group.command("edit")
+@openapi_command(
+    page_group,
+    "edit",
+    contract("POST", "/api/v1/pages/{page_id}/edits"),
+    examples=("wp page edit 21 --base-version-no 3 --edits-file ./edits.json --idempotency-key page-21-v3",),
+)
 @click.argument("page_id", type=int)
 @click.option("--edits-file", type=click.Path(exists=True, dir_okay=False), required=True, help=_PAGE_EDITS_FILE_HELP)
-@click.option("--base-version-no", type=int, required=True)
-@click.option("--wait/--no-wait", default=True)
-@click.option("--timeout", type=float, default=120.0, show_default=True)
+@click.option("--base-version-no", type=int, required=True, help="page get/source 返回的最新 current_version_no")
+@click.option("--wait/--no-wait", default=True, help="等待任务终态；--no-wait 只返回入队结果")
+@click.option("--timeout", type=float, default=120.0, show_default=True, help="等待任务终态的最长秒数")
 @idempotency_key_option
 @click.pass_context
 def edit_page_cmd(ctx: click.Context, page_id: int, edits_file: str, base_version_no: int, wait: bool, timeout: float) -> None:
@@ -243,7 +259,7 @@ def page_version_group() -> None:
     """页面历史版本。"""
 
 
-@page_version_group.command("list")
+@openapi_command(page_version_group, "list", contract("GET", "/api/v1/pages/{page_id}/versions"))
 @click.argument("page_id", type=int)
 @click.pass_context
 def list_page_versions_cmd(ctx: click.Context, page_id: int) -> None:
@@ -255,7 +271,7 @@ def list_page_versions_cmd(ctx: click.Context, page_id: int) -> None:
         handle_api_error("获取页面版本失败", err)
 
 
-@page_version_group.command("get")
+@openapi_command(page_version_group, "get", contract("GET", "/api/v1/pages/{page_id}/versions/{version_no}"))
 @click.argument("page_id", type=int)
 @click.argument("version_no", type=int)
 @click.pass_context
@@ -268,7 +284,7 @@ def get_page_version_cmd(ctx: click.Context, page_id: int, version_no: int) -> N
         handle_api_error("获取页面版本内容失败", err)
 
 
-@page_group.command("dependencies")
+@openapi_command(page_group, "dependencies", contract("GET", "/api/v1/pages/{page_id}/dependencies"))
 @click.argument("page_id", type=int)
 @click.pass_context
 def page_dependencies_cmd(ctx: click.Context, page_id: int) -> None:
@@ -280,7 +296,12 @@ def page_dependencies_cmd(ctx: click.Context, page_id: int) -> None:
         handle_api_error("获取页面依赖失败", err)
 
 
-@page_group.command("validate")
+@openapi_command(
+    page_group,
+    "validate",
+    contract("POST", "/api/v1/validate/entity"),
+    examples=("wp --json page validate 21 --mode content --source-file ./Page.vue --detail",),
+)
 @click.argument("page_id", type=int)
 @click.option(
     "--mode",
