@@ -19,7 +19,7 @@ class ApiClient(SharedApiClient):
             endpoint=profile.endpoint,
             token=profile.token,
             workspace_id=workspace_id or profile.default_workspace_id,
-            user_agent="web-presentation-cli/0.1.0",
+            user_agent="web-presentation-cli/0.1.1",
             idempotency_key=idempotency_key,
         )
 

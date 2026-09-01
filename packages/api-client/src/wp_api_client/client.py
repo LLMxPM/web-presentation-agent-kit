@@ -40,7 +40,7 @@ class ApiClient:
         endpoint: str,
         token: str | None = None,
         workspace_id: int | None = None,
-        user_agent: str = "web-presentation-agent-kit/0.1.0",
+        user_agent: str = "web-presentation-agent-kit/0.1.1",
         idempotency_key: str | None = None,
     ) -> None:
         """创建客户端；endpoint 不应包含 `/api/v1`，公共前缀由本类统一拼接。"""
