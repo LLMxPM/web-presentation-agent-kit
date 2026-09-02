@@ -10,7 +10,80 @@ MCP Server 不在本期范围内。仓库中的 `mcp-server/` 和相关设计文
 
 主平台仓库是 [web-presentation](https://github.com/LLMxPM/web-presentation)，项目官网与案例演示见 [https://presentation.inputloom.com/](https://presentation.inputloom.com/)。主平台负责 Backend、Editor、Runtime 和 `/api/v1` External API v1。本仓库不直接访问主平台数据库、Redis、Runtime 或 Chromium。
 
-主仓唯一维护的 External API v1 契约：[External Agent API v1 契约](https://github.com/LLMxPM/web-presentation/blob/main/docs/developer/reference/external-agent-api.md)。本仓库只维护 CLI、MCP Server、共享客户端和 Skill 的接入实现。
+主仓唯一维护的 External API v1 契约：[External Agent API v1 契约](https://github.com/LLMxPM/web-presentation/blob/main/docs/developer/reference/external-agent-api.md)。本仓库当前只维护 CLI、共享客户端和 Skill 的接入实现。
+
+## 用户快速开始
+
+### 1. 安装 CLI
+
+需要 Python 3.11+。推荐使用 `uv`，也可以使用 `pipx`：
+
+```bash
+uv tool install web-presentation-cli
+# 或
+pipx install web-presentation-cli
+
+wp --version
+```
+
+### 2. 登录并选择工作空间
+
+先登录 Web Presentation，在“账户设置” → “访问令牌 (PAT)”中创建令牌，授权准备操作的工作空间和所需权限。然后运行：
+
+```bash
+# 本地默认服务 http://127.0.0.1:8000
+wp login
+
+# 自建或远程服务；使用 Backend 根地址，不要附加 /api/v1
+wp login --endpoint https://presentation.example.com
+```
+
+CLI 会隐藏 PAT 输入。不要把令牌发送给智能体、写入项目文件或直接放进命令行参数。登录后完成工作空间选择和诊断：
+
+```bash
+wp workspace list
+wp workspace use <workspace_id>
+wp doctor
+```
+
+### 3. 安装 Skill
+
+在目标项目目录执行：
+
+```bash
+wp skill install
+```
+
+交互界面中的 `2. 项目` 是推荐选项，会把 Skill 安装到项目根目录的 Agent Skill 目录；`1. 全局` 才会安装到当前用户目录。Codex、Cursor、GitHub Copilot、Gemini CLI 和 OpenCode 共用 `.agents/skills/web-presentation`，只安装一份；Claude Code 使用 `.claude/skills/web-presentation`，Qoder 使用 `.qoder/skills/web-presentation`。
+
+明确安装当前项目的全部兼容目录时，可以运行：
+
+```bash
+wp skill install --scope project --agent all
+wp skill status --scope project --agent all
+```
+
+安装完成后重新加载智能体窗口或新建会话，使其重新发现 Skill。
+
+### 4. 复制提示词，让智能体协助完成安装
+
+如果希望由当前智能体检查环境并协助完成 CLI、登录和 Skill 配置，请复制下面的提示词。PAT 必须由用户本人在隐藏输入的终端提示中填写：
+
+```text
+请协助我安装和初步配置 Web Presentation 的 wp CLI 与 web-presentation Skill。请实际检查当前系统和项目环境，再逐步执行，不要只给通用说明。
+
+先识别操作系统、Shell、当前项目根目录和 Python 版本（需要 Python 3.11+），并检查 wp 是否已安装。未安装时优先使用 `uv tool install web-presentation-cli`，没有 uv 但有 pipx 时使用 `pipx install web-presentation-cli`；已安装时只显示版本，不要擅自升级或降级。随后运行 `wp --version` 和 `wp --help` 验证，必要时帮助我修复当前用户 PATH。
+
+登录前先问我使用本地默认服务还是自建/远程 Backend；远程地址末尾不能包含 `/api/v1`。绝对不要让我把 PAT 发到聊天中，也不要读取或展示配置文件中的 token。请运行不带 `--token` 的 `wp login` 或 `wp login --endpoint <Backend根地址>`，让我本人在隐藏输入中粘贴 PAT；如果我无法接管你的终端，就把命令给我自行执行并等待确认。
+
+登录后运行 `wp workspace list`。有多个工作空间时，把不含敏感信息的名称和 ID 给我选择，再执行 `wp workspace use <workspace_id>`，不要猜测。然后运行 `wp doctor` 和 `wp whoami` 验证 Backend、PAT、默认工作空间和权限。
+
+最后为当前智能体安装 Skill，默认使用项目级，并明确实际目录：Codex、Cursor、GitHub Copilot、Gemini CLI、OpenCode 共用项目根目录 `.agents/skills/web-presentation`；Claude Code 使用 `.claude/skills/web-presentation`；Qoder 使用 `.qoder/skills/web-presentation`。如果无法判断当前智能体或安装范围，先问我。使用 `wp skill install --scope project --agent <当前agent>` 安装，并用相同参数运行 `wp skill status`。不要使用 `--force`，除非解释冲突和备份行为后得到我的确认。
+
+完成后汇总 CLI 版本、Backend 地址、默认工作空间名称和 ID、Skill 版本、实际安装目录与状态，并提醒我重新加载智能体窗口或新建会话。任何删除、覆盖、强制安装、降级、卸载或 PAT 吊销操作都必须先征得我的明确同意。
+```
+
+完整的逐步说明、手动安装命令和安装后验证提示词见 [CLI 与 Agent Skill 安装指南](docs/getting-started.md)。
 
 ## 目录
 
@@ -37,14 +110,31 @@ uv run --project packages/cli wp --help
 uv run pytest
 ```
 
-安装 CLI：
+开发态安装 CLI：
 
 ```powershell
 uv tool install --editable packages/cli
 wp --help
 ```
 
-CLI 通过本地 Profile 配置 Backend 地址、PAT 和默认工作空间。对外接口公共前缀固定为 `/api/v1`。
+安装 CLI 随包发布的 `web-presentation` Skill：
+
+```powershell
+# 缺少范围或 Agent 时，交互式终端会引导选择
+wp skill install
+
+# 非交互式安装到项目内的全部受支持 Agent
+wp skill install --scope project --agent all
+
+# 查看状态、卸载或导出可供 WorkBuddy 等产品手动导入的标准 ZIP
+wp skill status --scope project --agent all
+wp skill uninstall --scope project --agent all --yes
+wp skill export
+```
+
+Codex、Cursor、GitHub Copilot、Gemini CLI 和 OpenCode 共用 `.agents/skills`；Claude Code 使用 `.claude/skills`，Qoder 使用 `.qoder/skills`。支持项目级和当前用户全局安装，不修改 Agent 配置，也不支持任意第三方 Skill 来源。
+
+CLI 通过本地 Profile 配置 Backend 地址、PAT 和默认工作空间。对外接口公共前缀固定为 `/api/v1`。用户安装与初始配置应优先参考上面的快速开始，不需要克隆本仓库。
 
 ## 边界
 
@@ -57,7 +147,7 @@ CLI 通过本地 Profile 配置 Backend 地址、PAT 和默认工作空间。对
 
 ## 发布关系
 
-本期仅发布 CLI；版本发布前必须针对目标 `web-presentation` 版本运行 External API v1 契约测试。
+本期仅发布一个 CLI 包；官方 Skill 作为 CLI 发行资源一并进入 wheel 和 sdist。CLI 与 Skill 使用独立版本，并由内置 manifest 记录兼容范围和内容 SHA-256。版本发布前必须针对目标 `web-presentation` 版本运行 External API v1 契约测试。
 
 ## 公开安装与发布
 
@@ -74,4 +164,3 @@ pipx install web-presentation-cli
 ## License
 
 当前仓库采用 Apache License 2.0，见 [LICENSE](./LICENSE)。
-

@@ -9,6 +9,9 @@ import wp
 from wp.client import ApiClient, ApiClientError
 from wp.config import get_profile, load_config
 from wp.formatter import print_json, print_table
+from wp.skills.catalog import get_bundled_skill
+from wp.skills.installer import inspect_target
+from wp.skills.targets import plan_targets
 
 
 @click.command("doctor")
@@ -23,7 +26,42 @@ def doctor_cmd(ctx: click.Context) -> None:
     # 1. CLI 版本
     diagnostics.append({"check": "CLI 版本", "value": f"v{wp.__version__}", "status": "ok"})
 
-    # 2. 服务端探活
+    # 2. 内置 Skill 与当前全局/项目安装版本
+    try:
+        bundled_skill = get_bundled_skill("web-presentation")
+        skill_targets = [
+            *plan_targets(bundled_skill.name, scope="global", agents=("all",)),
+            *plan_targets(bundled_skill.name, scope="project", agents=("all",)),
+        ]
+        installed = [
+            inspect_target(bundled_skill, target)
+            for target in skill_targets
+            if target.path.exists()
+        ]
+        unhealthy = [item for item in installed if item["status"] != "up_to_date"]
+        if unhealthy:
+            summary = "；".join(
+                f"{item['path']}={item['status']}" for item in unhealthy
+            )
+            diagnostics.append(
+                {
+                    "check": "Agent Skill",
+                    "value": f"内置 v{bundled_skill.version}；{summary}",
+                    "status": "warning",
+                }
+            )
+        else:
+            diagnostics.append(
+                {
+                    "check": "Agent Skill",
+                    "value": f"内置 v{bundled_skill.version}；已安装 {len(installed)} 处",
+                    "status": "ok" if installed else "warning",
+                }
+            )
+    except (OSError, RuntimeError, ValueError) as exc:
+        diagnostics.append({"check": "Agent Skill", "value": str(exc), "status": "error"})
+
+    # 3. 服务端探活
     endpoint = profile.endpoint.rstrip("/")
     health_value = "不可达"
     health_status = "error"
@@ -44,7 +82,7 @@ def doctor_cmd(ctx: click.Context) -> None:
         health_value = str(exc) or health_value
     diagnostics.append({"check": "Backend 地址", "value": f"{endpoint}：{health_value}", "status": health_status})
 
-    # 3. PAT 凭证检测
+    # 4. PAT 凭证检测
     token_status = "未配置"
     if profile.token:
         token_status = "已配置"
@@ -56,7 +94,7 @@ def doctor_cmd(ctx: click.Context) -> None:
         }
     )
 
-    # 4. API 连通与权限校验
+    # 5. API 连通与权限校验
     if profile.token:
         client = ApiClient(profile)
         try:

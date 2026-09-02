@@ -43,7 +43,7 @@ def test_cli_version() -> None:
     result = CliRunner().invoke(main, ["--version"])
 
     assert result.exit_code == 0, result.output
-    assert result.output.strip() == "wp, version 0.1.1"
+    assert result.output.strip() == "wp, version 0.2.0"
 
 
 def test_page_validate_help_describes_structured_edits() -> None:

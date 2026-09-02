@@ -1,6 +1,6 @@
 # CLI 公开分发
 
-本仓库通过 PyPI 分发一个包：`web-presentation-cli`。用户安装这个包后即可获得 `wp` 命令；共享 API Client 会作为内部模块一起打进 wheel 和 source distribution，不需要单独安装。
+本仓库通过 PyPI 分发一个包：`web-presentation-cli`。用户安装这个包后即可获得 `wp` 命令；共享 API Client 和确定版本的官方 `web-presentation` Skill 会作为内部资源一起进入 wheel 和 source distribution，不需要单独安装。
 
 GitHub Actions 已配置为：推送 `v*` 版本标签后，先运行 CLI/API Client 测试，再构建并发布一个 CLI 发行包。工作流文件为 `.github/workflows/publish.yml`。
 
@@ -30,17 +30,19 @@ GitHub Actions 已配置为：推送 `v*` 版本标签后，先运行 CLI/API Cl
 ```bash
 uv lock
 uv run pytest packages/api-client/tests packages/cli/tests
-git add packages/cli/pyproject.toml uv.lock
-git commit -m "发布 CLI v0.1.0"
+git add packages/cli/pyproject.toml skills/catalog.toml uv.lock
+git commit -m "发布 CLI v0.2.0"
 git push origin master
 
-git tag -a v0.1.0 -m "v0.1.0"
-git push origin v0.1.0
+git tag -a v0.2.0 -m "v0.2.0"
+git push origin v0.2.0
 ```
 
 标签版本必须与 `packages/cli/pyproject.toml` 的 `project.version` 完全一致。推送标签后，在 GitHub **Actions → Publish Python packages** 查看构建和发布状态。
 
 ## 用户安装
+
+面向首次使用者的 CLI 安装、PAT 安全登录、工作空间选择、Agent Skill 安装和可复制安装提示词，统一见 [CLI 与 Agent Skill 安装指南](getting-started.md)。
 
 ```bash
 uv tool install web-presentation-cli
@@ -52,7 +54,12 @@ pipx install web-presentation-cli
 
 ```bash
 wp --help
+wp skill install --scope global --agent all
 ```
+
+CLI 和 Skill 使用独立 SemVer。构建生成的内置 manifest 记录 CLI 版本、Skill 版本、CLI 兼容范围与内容 SHA-256；升级 CLI 后使用 `wp skill status` 检查已安装副本，并重新执行 `wp skill install` 同步。安装器不在包安装或普通 CLI 启动时隐式写入 Agent 目录。
+
+首个关联版本为 CLI `0.2.0`、Skill `1.0.0`、兼容范围 `>=0.2.0,<0.3.0`。Skill 行为发生变化时更新 `skills/catalog.toml` 中的独立版本；CLI 无关修复不要求同步提升 Skill 版本。
 
 ## 本地构建检查
 
@@ -60,6 +67,7 @@ wp --help
 
 ```bash
 uv build --package web-presentation-cli --out-dir dist
+uv run python packages/cli/tests/verify_skill_distribution.py dist
 ```
 
 如果需要人工上传，使用 PyPI Token 设置 `UV_PUBLISH_TOKEN` 后执行 `uv publish`；优先使用 GitHub Actions 的 Trusted Publishing，避免长期 Token 泄露和维护成本。

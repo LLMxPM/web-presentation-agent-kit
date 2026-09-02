@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from wp import __version__
 from wp.config import ProfileConfig
 from wp_api_client import ApiClient as SharedApiClient, ApiClientError
 
@@ -19,7 +20,7 @@ class ApiClient(SharedApiClient):
             endpoint=profile.endpoint,
             token=profile.token,
             workspace_id=workspace_id or profile.default_workspace_id,
-            user_agent="web-presentation-cli/0.1.1",
+            user_agent=f"web-presentation-cli/{__version__}",
             idempotency_key=idempotency_key,
         )
 

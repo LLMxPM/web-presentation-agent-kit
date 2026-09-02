@@ -14,6 +14,7 @@ from wp.commands.job import job_group
 from wp.commands.page import page_group
 from wp.commands.profile import profile_group
 from wp.commands.project import project_group
+from wp.commands.skill import skill_group
 from wp.commands.style import style_group
 from wp.commands.theme import theme_group
 from wp.commands.workspace import workspace_group
@@ -46,6 +47,7 @@ main.add_command(logout_cmd)
 main.add_command(whoami_cmd)
 main.add_command(doctor_cmd)
 main.add_command(profile_group)
+main.add_command(skill_group)
 main.add_command(system_group)
 main.add_command(standards_group)
 main.add_command(runtime_kit_group)

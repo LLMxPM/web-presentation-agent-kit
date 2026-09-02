@@ -1,0 +1,8 @@
+schema_version = 1
+
+[[skills]]
+name = "web-presentation"
+version = "1.0.0"
+path = "web-presentation"
+requires_cli = ">=0.2.0,<0.3.0"
+
