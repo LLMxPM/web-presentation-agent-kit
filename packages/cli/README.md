@@ -81,27 +81,23 @@ wp skill export web-presentation
 
 Skill 与 CLI 一起发布，但使用独立版本。`wp skill status` 会识别缺失、过期、较新、不兼容、用户修改和未受管理等状态；普通升级不会覆盖用户修改，`--force` 会先保留同级备份。CLI 升级不会隐式改写已安装 Skill，需要重新运行 `wp skill install` 完成同步。
 
-当前版本关系：CLI `0.2.0` 内置 `web-presentation` Skill `1.1.0`，Skill 声明的 CLI 兼容范围为 `>=0.2.0,<0.3.0`。构建时会把这组关系与规范化内容 SHA-256 写入 manifest。
+当前版本关系：CLI `0.2.0` 内置 `web-presentation` Skill `1.1.1`，Skill 声明的 CLI 兼容范围为 `>=0.2.0,<0.3.0`。构建时会把这组关系与规范化内容 SHA-256 写入 manifest。
 
 Windsurf 和 WorkBuddy 不属于本地目录安装目标。`wp skill export` 生成的标准 ZIP 可用于 WorkBuddy 等支持本地上传的产品；CLI 不从 URL 或第三方仓库下载 Skill。
 
-## 复制给智能体：协助安装 CLI、登录和 Skill
+## 复制给智能体：安装 CLI 和 Skill
 
-把下面整段发给当前智能体。智能体可以执行环境检测和安装命令；PAT 只能由用户本人在隐藏输入中填写：
+把下面这段发给当前智能体。它只负责安装 CLI 和 Skill；登录由安装后的 Skill 指引：
 
 ```text
-请协助我安装和初步配置 Web Presentation 的 wp CLI 与 web-presentation Skill。请实际检查当前系统和项目环境，再逐步执行，不要只给通用说明。
+请帮我安装 Web Presentation 的官方 `wp` CLI 和它内置的 `web-presentation` Skill。CLI 项目与使用说明：https://github.com/LLMxPM/web-presentation-agent-kit 。正常安装使用 PyPI 包，不要默认克隆源码仓库。
 
-先识别操作系统、Shell、当前项目根目录和 Python 版本（需要 Python 3.11+），并检查 wp 是否已安装。未安装时优先使用 `uv tool install web-presentation-cli`，没有 uv 但有 pipx 时使用 `pipx install web-presentation-cli`；已安装时只显示版本，不要擅自升级或降级。随后运行 `wp --version` 和 `wp --help` 验证，必要时帮助我修复当前用户 PATH。
+先确认当前环境有 Python 3.11+，检查 `wp` 是否已安装；未安装时优先运行 `uv tool install web-presentation-cli`，再用 `wp --version` 验证。已安装时不要擅自升级或降级。
 
-登录前先问我使用本地默认服务还是自建/远程 Backend；远程地址末尾不能包含 `/api/v1`。绝对不要让我把 PAT 发到聊天中，也不要读取或展示配置文件中的 token。请运行不带 `--token` 的 `wp login` 或 `wp login --endpoint <Backend根地址>`，让我本人在隐藏输入中粘贴 PAT；如果我无法接管你的终端，就把命令给我自行执行并等待确认。
-
-登录后运行 `wp workspace list`。有多个工作空间时，把不含敏感信息的名称和 ID 给我选择，再执行 `wp workspace use <workspace_id>`，不要猜测。然后运行 `wp doctor` 和 `wp whoami` 验证 Backend、PAT、默认工作空间和权限。
-
-最后为当前智能体安装 Skill，默认使用项目级，并明确实际目录：Codex、Cursor、GitHub Copilot、Gemini CLI、OpenCode 共用项目根目录 `.agents/skills/web-presentation`；Claude Code 使用 `.claude/skills/web-presentation`；Qoder 使用 `.qoder/skills/web-presentation`。如果无法判断当前智能体或安装范围，先问我。使用 `wp skill install --scope project --agent <当前agent>` 安装，并用相同参数运行 `wp skill status`。不要使用 `--force`，除非解释冲突和备份行为后得到我的确认。
-
-完成后汇总 CLI 版本、Backend 地址、默认工作空间名称和 ID、Skill 版本、实际安装目录与状态，并提醒我重新加载智能体窗口或新建会话。任何删除、覆盖、强制安装、降级、卸载或 PAT 吊销操作都必须先征得我的明确同意。
+CLI 可用后，立即在当前项目运行 `wp skill install`，选择项目级安装和当前智能体；不要在安装 Skill 之前配置登录或工作空间。随后运行 `wp skill status` 验证。遇到覆盖、强制安装或降级时先停下确认。安装成功后告诉我重新加载智能体或新建会话，后续登录和工作空间配置由 `web-presentation` Skill 指引。
 ```
+
+安装成功并重新加载后，可以对智能体说：`请使用 $web-presentation 完成首次登录和工作空间配置。`
 
 更完整的人工操作步骤和排障说明见 [CLI 与 Agent Skill 安装指南](https://github.com/LLMxPM/web-presentation-agent-kit/blob/main/docs/getting-started.md)。
 

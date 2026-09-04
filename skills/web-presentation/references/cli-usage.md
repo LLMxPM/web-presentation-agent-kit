@@ -2,9 +2,17 @@
 
 本参考只说明 `wp` 的本地上下文、文件输入和任务控制。命令参数和 payload Schema 以目标叶子命令的当前 `--help` 为准，不在 Skill 中复制。
 
-## Profile 与工作空间
+## 首次登录与工作空间
 
-Endpoint 填 Backend 根地址，不包含 `/api/v1`。优先让 `wp login` 交互式读取 PAT，不把 Token 写进命令、文件、日志或回复：
+首次配置按以下顺序完成：
+
+1. 运行 `wp --version` 确认 CLI 可用。登录前确认用户使用本地默认 Backend，还是自建/远程 Backend。
+2. 本地运行 `wp login`；远程运行 `wp login --endpoint <Backend根地址>`。Endpoint 使用 Backend 根地址，不包含 `/api/v1`。
+3. 让用户本人在终端的隐藏输入中填写 PAT。不要要求用户把 PAT 发到聊天中，不读取、打印或复述配置文件中的 Token；如果用户无法接管当前终端，只提供登录命令并等待用户完成。
+4. 登录后运行 `wp workspace list`。只有一个授权工作空间时可直接设为默认值；存在多个时展示非敏感的名称和 ID，让用户选择后再运行 `wp workspace use <workspace_id>`，不要代替用户猜测。
+5. 运行 `wp whoami` 和 `wp doctor`，确认身份、Backend、默认工作空间和权限均可用，再开始平台对象任务。
+
+常用命令：
 
 ```bash
 wp login
@@ -15,6 +23,10 @@ wp profile use <profile>
 wp workspace list
 wp workspace use <workspace_id>
 ```
+
+## Profile 与请求上下文
+
+需要访问多个 Backend 或身份时，用 Profile 隔离配置；先查看列表，再明确切换目标 Profile。不要读取或展示 Profile 配置中的 PAT。
 
 全局选项必须放在子命令之前：
 

@@ -1,6 +1,6 @@
 ---
 name: web-presentation
-description: Use the wp CLI to create and refine presentations inside the Web Presentation platform, including projects, fixed-canvas Vue pages, routes, components, resources, themes, and styles. Apply when the requested result should live in Web Presentation rather than be a standalone PPTX, HTML file, or local frontend project.
+description: Use the wp CLI to configure Web Presentation access and create or refine platform presentations, including profiles, workspaces, projects, fixed-canvas Vue pages, routes, components, resources, themes, and styles. Apply to initial login/setup or when the requested result should live in Web Presentation rather than be a standalone PPTX, HTML file, or local frontend project.
 ---
 
 # Web Presentation Agent
@@ -22,7 +22,7 @@ Web Presentation 是面向 AI 的演示内容创作平台，不是单文件幻�
 
 完成上述平台导览后，只读取当前任务需要的内容：
 
-- 不熟悉 Profile、工作空间、JSON 文件参数、异步任务或确认语义时，读 [CLI 工作流](./references/cli-usage.md)。
+- 首次登录、切换 Backend/Profile、尚未选择工作空间，或不熟悉 JSON 文件参数、异步任务和确认语义时，读 [CLI 工作流](./references/cli-usage.md)。
 - 生成或大幅修改页面时，读 [页面生成流程](./references/page-generation.md) 和 [页面源码规范](./references/source-standards.md)。
 - 创建或修改工作空间组件时，读 [组件规范](./references/component-standards.md)；涉及源码时同时读页面源码规范。
 - 选择或维护图片、图标、字体、主题、样式等输入时，读 [资源与设计系统](./references/design-system-and-assets.md)。

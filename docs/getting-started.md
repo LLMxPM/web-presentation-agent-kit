@@ -13,43 +13,23 @@
 
 ## 推荐：让智能体协助安装
 
-把下面整段提示词复制给准备使用的智能体。智能体可以完成环境检查、CLI 安装和 Skill 安装；涉及 PAT 时，必须由你本人在隐藏输入的终端提示中填写。
+把下面这段提示词复制给准备使用的智能体。它只负责安装 CLI 和 Skill；不要在 Skill 可用前让陌生智能体自行处理平台登录。
 
 ```text
-请协助我安装和初步配置 Web Presentation 的 wp CLI 与 web-presentation Skill。请实际检查当前系统和项目环境，再逐步执行，不要只给我一份通用说明。
+请帮我安装 Web Presentation 的官方 `wp` CLI 和它内置的 `web-presentation` Skill。CLI 项目与使用说明：https://github.com/LLMxPM/web-presentation-agent-kit 。正常安装使用 PyPI 包，不要默认克隆源码仓库。
 
-请遵循以下要求：
+先确认当前环境有 Python 3.11+，检查 `wp` 是否已安装；未安装时优先运行 `uv tool install web-presentation-cli`，再用 `wp --version` 验证。已安装时不要擅自升级或降级。
 
-1. 先识别操作系统、当前 Shell、当前项目根目录，以及 Python 版本。wp CLI 需要 Python 3.11+。
-2. 检查 wp 是否已经安装：
-   - 未安装时，优先使用 `uv tool install web-presentation-cli`；
-   - 如果系统没有 uv，但有 pipx，可以使用 `pipx install web-presentation-cli`；
-   - 不要从源码仓库安装，除非我明确要求开发模式；
-   - 已安装时先显示版本，不要擅自升级或降级。
-3. 运行 `wp --version` 和 `wp --help` 验证 CLI。如果命令不在 PATH，帮助我修复当前用户的 PATH，并说明是否需要重新打开终端。
-4. 配置登录前，先问我使用本地默认服务还是自建/远程服务。远程服务只需要 Backend 根地址，末尾不能包含 `/api/v1`。
-5. 绝对不要让我把个人访问令牌 (PAT) 发到聊天中，也不要读取、打印或展示 `~/.web-presentation/config.json` 的 token。请运行不带 `--token` 的 `wp login`，或运行 `wp login --endpoint <Backend根地址>`，让我本人在隐藏输入提示中粘贴 PAT。如果当前工具无法让我接管终端输入，就把这条命令单独给我执行并等待我确认结果。
-6. 登录成功后运行 `wp workspace list`。如果只有一个授权工作空间，确认它已成为默认值；如果有多个，请展示不含敏感信息的名称和 ID，让我选择后执行 `wp workspace use <workspace_id>`，不要替我猜。
-7. 运行 `wp doctor` 和 `wp whoami`，确认 Backend、PAT、默认工作空间与权限正常。不得在回复中泄露凭证。
-8. 为当前智能体安装 Skill。默认采用项目级安装，并明确告诉我它会安装到项目根目录的 Skill 目录：
-   - Codex、Cursor、GitHub Copilot、Gemini CLI、OpenCode 共用 `.agents/skills/web-presentation`，只安装一份；
-   - Claude Code 使用 `.claude/skills/web-presentation`；
-   - Qoder 使用 `.qoder/skills/web-presentation`。
-   如果当前智能体或安装范围无法可靠判断，先问我；只有我明确希望所有项目共用时才改用 global。
-9. 使用明确的非交互命令安装，例如 `wp skill install --scope project --agent <当前agent>`；随后用相同 scope 和 agent 运行 `wp skill status`。不要使用 `--force`，除非发现冲突、解释备份行为并获得我的确认。
-10. 安装完成后汇总：wp CLI 版本、Backend 地址、默认工作空间名称和 ID、Skill 版本、实际安装目录与状态。提醒我重新加载智能体窗口或新建会话，以便发现 Skill。
-
-遇到错误时先诊断原因。任何删除、覆盖、强制安装、降级、卸载或 PAT 吊销操作都必须先征得我的明确同意。
+CLI 可用后，立即在当前项目运行 `wp skill install`，选择项目级安装和当前智能体；不要在安装 Skill 之前配置登录或工作空间。随后运行 `wp skill status` 验证。遇到覆盖、强制安装或降级时先停下确认。安装成功后告诉我重新加载智能体或新建会话，后续登录和工作空间配置由 `web-presentation` Skill 指引。
 ```
 
-### 使用提示词前需要知道什么
+安装成功并重新加载后，可以对智能体说：
 
-智能体通常需要向你确认两个选择：
+```text
+请使用 $web-presentation 完成首次登录和工作空间配置。
+```
 
-1. Backend 地址：本地部署默认是 `http://127.0.0.1:8000`；远程环境使用管理员提供的根地址，不附加 `/api/v1`。
-2. 安装范围：推荐 `project`，只对当前项目生效；确实希望所有项目都能使用时再选 `global`。
-
-PAT 不应出现在聊天记录里。智能体运行 `wp login` 后，如果你无法接管它的终端输入，请在自己的终端执行智能体给出的登录命令，完成后只回复“登录成功”或提供脱敏错误信息。
+Skill 会询问本地或远程 Backend，并指引你在终端隐藏输入 PAT、选择工作空间和完成环境诊断。PAT 不应出现在聊天记录里；如果你无法接管智能体的终端，请自行执行 Skill 给出的登录命令，完成后只回复“登录成功”或提供脱敏错误信息。
 
 ## 手动安装
 
