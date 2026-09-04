@@ -81,7 +81,7 @@ wp skill export web-presentation
 
 Skill 与 CLI 一起发布，但使用独立版本。`wp skill status` 会识别缺失、过期、较新、不兼容、用户修改和未受管理等状态；普通升级不会覆盖用户修改，`--force` 会先保留同级备份。CLI 升级不会隐式改写已安装 Skill，需要重新运行 `wp skill install` 完成同步。
 
-当前首发版本关系：CLI `0.2.0` 内置 `web-presentation` Skill `1.0.0`，Skill 声明的 CLI 兼容范围为 `>=0.2.0,<0.3.0`。构建时会把这组关系与规范化内容 SHA-256 写入 manifest。
+当前版本关系：CLI `0.2.0` 内置 `web-presentation` Skill `1.1.0`，Skill 声明的 CLI 兼容范围为 `>=0.2.0,<0.3.0`。构建时会把这组关系与规范化内容 SHA-256 写入 manifest。
 
 Windsurf 和 WorkBuddy 不属于本地目录安装目标。`wp skill export` 生成的标准 ZIP 可用于 WorkBuddy 等支持本地上传的产品；CLI 不从 URL 或第三方仓库下载 Skill。
 

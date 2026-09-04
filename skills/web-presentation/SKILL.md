@@ -1,30 +1,41 @@
 ---
 name: web-presentation
-description: Use the wp CLI to inspect, create, validate, and refine fixed-canvas Web Presentation pages and reusable workspace assets; apply when work targets platform projects, pages, components, resources, themes, or styles.
+description: Use the wp CLI to create and refine presentations inside the Web Presentation platform, including projects, fixed-canvas Vue pages, routes, components, resources, themes, and styles. Apply when the requested result should live in Web Presentation rather than be a standalone PPTX, HTML file, or local frontend project.
 ---
 
 # Web Presentation Agent
 
-通过 `wp` CLI 操作 Web Presentation 的真实平台对象。页面不是独立 HTML 文件，而是项目内由 Backend 保存、Runtime 在固定画布渲染的 Vue SFC；组件、资源、主题、样式和字体是工作空间级共享资产。
+Web Presentation 是面向 AI 的演示内容创作平台，不是单文件幻灯片生成器。通过 `wp` CLI 操作 Backend 中的真实平台对象：演示内容组织在项目和路由中，每一页是 Backend 保存、Runtime 在固定画布编译渲染的 Vue SFC；组件、资源、主题、样式和字体在工作空间内复用。临时 JSON、Vue 和截图文件只是 CLI 的输入输出载体，不是平台内容的事实源。
+
+## 先理解平台再操作
+
+当前会话第一次使用本 Skill，或不能准确说明用户任务最终会落到哪些平台对象时，必须先完整阅读 [平台概念与运行逻辑](./references/platform-overview.md)，再查询或写入。不要让用户重新解释平台；从该导览建立心智模型，并把自然语言任务映射为项目、页面、路由、配置或共享资产操作。
+
+开始执行前至少在内部确定：
+
+- 交付目标：新建一组演示页面、补充/修改现有页面、统一视觉体系，还是只做分析或截图；
+- 对象落点：目标工作空间、项目、页面及是否涉及路由和共享资产；
+- 运行基线：项目画布与样式配置、当前版本、可复用组件、资源和 Runtime Kit 能力；
+- 完成证据：Backend 成功响应、Mutation Job 终态、最新对象版本和必要的截图复核。
 
 ## 按任务加载参考
 
-只读取当前任务需要的内容：
+完成上述平台导览后，只读取当前任务需要的内容：
 
 - 不熟悉 Profile、工作空间、JSON 文件参数、异步任务或确认语义时，读 [CLI 工作流](./references/cli-usage.md)。
 - 生成或大幅修改页面时，读 [页面生成流程](./references/page-generation.md) 和 [页面源码规范](./references/source-standards.md)。
 - 创建或修改工作空间组件时，读 [组件规范](./references/component-standards.md)；涉及源码时同时读页面源码规范。
 - 选择或维护图片、图标、字体、主题、样式等输入时，读 [资源与设计系统](./references/design-system-and-assets.md)。
 - 处理候选校验、Mutation Job、截图、失败恢复或交付时，读 [校验与交付](./references/validation-and-delivery.md)。
-- 需要确认对象归属、配置快照、路由或依赖关系时，读 [平台资源模型](./references/platform-model.md)。
+- 需要进一步确认对象归属、配置快照、路由或依赖关系时，读 [平台资源模型](./references/platform-model.md)。
 
 具体命令先运行 `wp <group> <command> --help`。叶子命令帮助会从当前 Backend OpenAPI 展示参数和完整请求 Schema；页面或组件源码任务还要执行 `wp standards page` 或 `wp standards component`，并从 `wp runtime-kit list/get` 获取真实版本化 import path。
 
 ## 执行闭环
 
-1. 区分分析、查询、创建、修改、发布、归档和截图；只要求分析时保持只读。
-2. 确认 Profile、工作空间和目标对象的真实 ID，读取最新 configuration、源码、版本、draft hash、依赖及必要资产。
-3. 选择满足目标的最小变更；生成源码前先构图并读取当前 standards，不凭名称或记忆猜字段、资源和 import path。
+1. 依据平台导览解释请求，区分分析、查询、创建、修改、发布、归档和截图；只要求分析时保持只读。
+2. 确认 Profile、工作空间和目标对象的真实 ID，读取最新 configuration、路由、源码、版本、draft hash、依赖及必要资产。
+3. 把内容目标转换成页面 brief 和固定画布构图，再选择满足目标的最小对象变更；不凭名称或记忆猜字段、资源和 import path。
 4. 轻量字段使用对应 update，页面/组件创建和源码编辑走 Mutation 命令；写入使用幂等键和最新版本基线。
 5. 等待任务终态。成功后重新读取对象并按需截图；失败时依据错误码和诊断修正，不盲目重试。
 6. 汇报真实 ID、版本、Job、校验、截图和未完成事项；没有成功响应不得声称已写入或验证通过。
