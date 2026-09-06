@@ -160,3 +160,8 @@ pipx install web-presentation-cli
 ## License
 
 当前仓库采用 Apache License 2.0，见 [LICENSE](./LICENSE)。
+
+
+### 契约可用性与多页交付
+
+CLI 0.2.1 的契约叶子帮助失败时立即非零退出，不输出部分帮助；`wp doctor` 独立检查 OpenAPI，有错误时退出 1。请先部署平台 `/openapi.json` Gateway 修复，再升级 CLI 和内置 Skill 1.2.0。Skill 现包含多页 Job 编排、路由挂载与最终截图核对，以及主题语义类消费示例。具体安装与行为变更见 [CLI 说明](packages/cli/README.md)。

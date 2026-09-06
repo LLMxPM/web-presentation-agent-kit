@@ -8,3 +8,6 @@ default-groups = ["dev"]
 dev = [
     "pytest>=8.0.0",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["packages/api-client/src", "packages/cli/src"]

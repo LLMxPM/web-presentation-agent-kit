@@ -43,7 +43,7 @@ def test_cli_version() -> None:
     result = CliRunner().invoke(main, ["--version"])
 
     assert result.exit_code == 0, result.output
-    assert result.output.strip() == "wp, version 0.2.0"
+    assert result.output.strip() == "wp, version 0.2.1"
 
 
 def test_page_validate_help_describes_structured_edits() -> None:
@@ -106,7 +106,7 @@ def test_cli_doctor_unconfigured(monkeypatch, tmp_path) -> None:
 
     runner = CliRunner()
     result = runner.invoke(main, ["doctor"])
-    assert result.exit_code == 0
+    assert result.exit_code == 1
     assert "CLI 诊断检查报告" in result.output
     assert "CLI 版本" in result.output
 
@@ -121,7 +121,7 @@ def test_cli_json_mode(monkeypatch, tmp_path) -> None:
 
     runner = CliRunner()
     result = runner.invoke(main, ["--json", "doctor"])
-    assert result.exit_code == 0
+    assert result.exit_code == 1
     diagnostics = json.loads(result.output)
     assert diagnostics[0]["check"] == "CLI 版本"
     assert all("[green]" not in item["value"] for item in diagnostics)

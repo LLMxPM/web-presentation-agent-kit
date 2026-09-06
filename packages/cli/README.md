@@ -81,7 +81,7 @@ wp skill export web-presentation
 
 Skill 与 CLI 一起发布，但使用独立版本。`wp skill status` 会识别缺失、过期、较新、不兼容、用户修改和未受管理等状态；普通升级不会覆盖用户修改，`--force` 会先保留同级备份。CLI 升级不会隐式改写已安装 Skill，需要重新运行 `wp skill install` 完成同步。
 
-当前版本关系：CLI `0.2.0` 内置 `web-presentation` Skill `1.1.1`，Skill 声明的 CLI 兼容范围为 `>=0.2.0,<0.3.0`。构建时会把这组关系与规范化内容 SHA-256 写入 manifest。
+当前版本关系：CLI `0.2.1` 内置 `web-presentation` Skill `1.2.0`，Skill 声明的 CLI 兼容范围为 `>=0.2.1,<0.3.0`。构建时会把这组关系与规范化内容 SHA-256 写入 manifest。
 
 Windsurf 和 WorkBuddy 不属于本地目录安装目标。`wp skill export` 生成的标准 ZIP 可用于 WorkBuddy 等支持本地上传的产品；CLI 不从 URL 或第三方仓库下载 Skill。
 
@@ -118,6 +118,13 @@ wp job wait <job_id>
 
 复杂写入参数使用 `--payload-file`、`--edits-file`、`--content-file`、`--route-file` 和 `--ids-file`。Build、产物下载、Agent 运行、图片能力、Restore 和 MCP 不属于当前 CLI。
 
-叶子命令的 `--help` 会从当前 Profile 的 Backend `/openapi.json` 加载请求参数和完整 Schema；服务不可达时仍返回本地语法帮助，不缓存 Schema。
+叶子命令的 `--help` 会从当前 Profile 的 Backend `/openapi.json` 加载请求参数和完整 Schema；契约获取或解析失败时不输出部分帮助，stderr 输出具体错误并退出 1，不缓存 Schema。
 
 写入命令支持 `--idempotency-key <key>`；网络超时后需要重放同一业务请求时复用原 key，不要把同一个 key 用于不同请求。
+
+
+### 0.2.1 行为变更
+
+契约叶子帮助失败立即退出 1；`--json` 错误输出在 stderr。Doctor 独立检查全部已注册 OpenAPI 契约，存在 error 时退出 1，仅 warning 仍退出 0。自动化必须检查退出码。顶层与本地配置帮助仍可离线使用。
+
+平台须先部署 `/openapi.json` 网关修复，再升级 CLI。升级后运行 `wp skill install --help`，按原安装目标执行安装/更新，并用 `wp doctor` 确认内置和已安装 Skill 版本；多页流程、路由交付和主题示例见 Skill references。

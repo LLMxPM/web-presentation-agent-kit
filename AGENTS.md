@@ -32,3 +32,8 @@ uv run --project packages/cli wp --help
 根仓 `uv run pytest` 仍可用于全量回归，但其中的 `mcp-server/tests` 不属于本期 CLI 交付门禁；本期修改默认不触碰 MCP 目录。
 
 涉及 External API v1 路径、Scope、DTO、错误码或异步任务语义变化时，应同步更新主仓 `web-presentation` 的契约测试和本仓的适配测试。
+
+
+## 契约失败语义
+
+CLI 契约叶子帮助仅在当前 Backend OpenAPI 及全部请求引用解析成功后输出；失败立即退出 1，不保留部分帮助、离线 Schema 或缓存。Doctor 必须独立检查注册表派生的全部契约，有 error 时退出 1。新增命令不得维护第二份契约清单。

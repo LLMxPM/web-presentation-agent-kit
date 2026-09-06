@@ -54,3 +54,30 @@ wp asset upload ./image.png --type image --name hero-image --idempotency-key <ke
 样式是可复用的项目展示配置模板，可能包括画布、基础字号、主题 key、样式规范和建议组件。应用样式到项目后形成独立快照；单项目微调直接更新项目 configuration，不要为一次性变化创建全局样式。
 
 修改主题 key、画布、基础字号、样式规范或建议组件前，先读取最新 configuration。主题/字体/样式修改会影响多个页面或项目，写入前明确影响范围和用户目标。
+
+## 主题 Token 消费示例
+
+以下 palette 仅用于展示映射，实际写入必须先获取当前命令契约：
+
+```json
+{"text":{"primary":"#172033","secondary":"#526078","invert":"#ffffff"},"background":{"default":"#ffffff","invert":"#172033"},"border":{"default":"#ccd3df","subtle":"#e8ecf2"},"link":{"default":"#2563eb","hover":"#1d4ed8","visited":"#7c3aed"},"accent":["#2563eb"]}
+```
+
+| palette 来源 | 模板语义类示例 | 直接 CSS 的公开变量 |
+| --- | --- | --- |
+| text.primary | text-primary | --tw-color-text-primary |
+| background.default | bg-background | --tw-color-bg-default |
+| border.default | border-border | --tw-color-border-default |
+| accent[0] | text-accent1 / bg-accent1 | --tw-color-accent1 |
+
+```vue
+<!-- 文件功能：在已提供画布尺寸的页面容器内消费项目主题。 -->
+<template>
+  <section class="h-full w-full bg-background p-12 text-primary font-body">
+    <h1 class="font-heading text-4xl text-accent1">本页结论</h1>
+    <p class="mt-6 border-t border-border pt-6 text-secondary">真实内容说明</p>
+  </section>
+</template>
+```
+
+普通模板优先完整静态语义类；需要直接 CSS 时使用 `color: var(--tw-color-accent1)` 等公开桥接变量。不要因变量不确定而硬编码品牌色。background-subtle 是 Runtime 派生语义槽位，不是可写 palette.background.subtle 字段。

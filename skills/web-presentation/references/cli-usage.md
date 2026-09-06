@@ -45,7 +45,9 @@ wp page create --help
 wp component update --help
 ```
 
-帮助始终包含本地调用语法；Backend 可达时还会从 `/openapi.json` 展示当前请求参数、content type、请求体和递归引用 Schema。出现“当前 Backend Schema 未加载”时只表示动态 Schema 不可用；需要提交请求时先恢复 Backend 连通性再读取帮助。
+依赖契约的叶子帮助必须成功读取并解析 `/openapi.json`，才会输出调用语法与完整请求契约。失败时不输出部分帮助，stderr 报告错误码、URL、HTTP 状态、Content-Type 和失败位置，退出码为 1；`--json` 输出结构化错误。顶层、命令组和本地配置帮助不依赖契约。
+
+契约失败先运行 `wp doctor`，区分健康、契约和认证结果；任一 error 使 doctor 退出 1。HTML 响应应检查网关是否返回前端入口，路径/方法/引用缺失应检查服务端与 CLI 契约。修复后重新读取帮助，不猜字段、不以试探写入寻找 Schema，也不读取内部源码绕过公开契约。没有缓存、离线 Schema 或自动重试。
 
 `--json` 用于稳定解析表格型输出，复杂响应默认已经是 JSON。不要解析 Rich 表格文案来获取 ID、版本或状态。
 

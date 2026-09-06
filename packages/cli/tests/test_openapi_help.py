@@ -27,14 +27,14 @@ def _leaf_commands() -> list[tuple[list[str], click.Command]]:
     return leaves
 
 
-def test_all_leaf_help_succeeds_offline_and_options_have_descriptions() -> None:
-    """所有叶子命令在 OpenAPI 不可用时仍能帮助退出，且公开选项都有说明。"""
+def test_leaf_help_fails_offline_but_local_help_remains_available() -> None:
+    """契约帮助失败，本地帮助仍成功；公开选项都有说明。"""
 
     runner = CliRunner()
     with patch("wp.openapi_help.ApiClient.get_openapi_schema", side_effect=ApiClientError("offline")):
         for path, command in _leaf_commands():
             result = runner.invoke(main, [*path, "--help"])
-            assert result.exit_code == 0, (path, result.output, result.exception)
+            assert result.exit_code == (1 if getattr(command, "openapi_contracts", ()) else 0), (path, result.output, result.exception)
             for parameter in command.params:
                 if isinstance(parameter, click.Option):
                     assert parameter.help, (path, parameter.name)
@@ -76,8 +76,8 @@ def test_openapi_help_renders_recursive_json_and_multi_route_contracts() -> None
     client.close.assert_called_once()
 
 
-def test_openapi_help_renders_multipart_and_falls_back_without_cache() -> None:
-    """上传命令应展示 multipart；读取失败时只输出本地帮助和稳定提示。"""
+def test_openapi_help_renders_multipart_and_fails_without_partial_help() -> None:
+    """上传命令应展示 multipart；读取失败时不输出部分帮助。"""
 
     openapi = {
         "paths": {
@@ -109,5 +109,6 @@ def test_openapi_help_renders_multipart_and_falls_back_without_cache() -> None:
 
     with patch("wp.openapi_help.ApiClient.get_openapi_schema", side_effect=ApiClientError("offline")):
         offline = CliRunner().invoke(main, ["page", "create", "--help"])
-    assert offline.exit_code == 0
-    assert "当前 Backend Schema 未加载" in offline.output
+    assert offline.exit_code == 1
+    assert offline.stdout == ""
+    assert "offline" in offline.stderr

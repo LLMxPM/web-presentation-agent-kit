@@ -27,6 +27,7 @@ Web Presentation 是面向 AI 的演示内容创作平台，不是单文件幻�
 - 创建或修改工作空间组件时，读 [组件规范](./references/component-standards.md)；涉及源码时同时读页面源码规范。
 - 选择或维护图片、图标、字体、主题、样式等输入时，读 [资源与设计系统](./references/design-system-and-assets.md)。
 - 处理候选校验、Mutation Job、截图、失败恢复或交付时，读 [校验与交付](./references/validation-and-delivery.md)。
+- 创建整套演示、编排页面顺序或调整目录时，读 [路由与导航](./references/route-and-navigation.md)，并执行页面生成流程中的多页交付步骤。
 - 需要进一步确认对象归属、配置快照、路由或依赖关系时，读 [平台资源模型](./references/platform-model.md)。
 
 具体命令先运行 `wp <group> <command> --help`。叶子命令帮助会从当前 Backend OpenAPI 展示参数和完整请求 Schema；页面或组件源码任务还要执行 `wp standards page` 或 `wp standards component`，并从 `wp runtime-kit list/get` 获取真实版本化 import path。
