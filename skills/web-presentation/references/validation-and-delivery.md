@@ -16,7 +16,7 @@ wp --json component validate <component_id> --mode content --source-file ./Compo
 
 `--edits-file` 的完整结构以 `wp page edit --help` 或 `wp component edit --help` 展示的当前 OpenAPI Schema 为准。所有匹配片段必须来自最新源码，并在应用时唯一命中。
 
-页面/组件创建、源码编辑以及组件复杂 metadata 更新本身会自动校验。成功写入后不必为了“证明已经校验”重复调用同一 `validate`；应重新读取对象并截图。失败时优先使用返回的短 `code`、`message`、定位、`scenario` 和 `profile`，需要更多事实再加 `--detail`。
+页面/组件创建、源码编辑以及组件复杂 metadata 更新本身会自动校验。写入任务终态成功时，返回的 `result.validation` 字段已包含与平台智能体工具完全一致的有界布局诊断与校验文本（包含结论、摘要、布局分类统计、具体警告及定位；无警告时为 `"检查通过，无警告"`）。外部 Agent 可直接依据 `result.validation` 发现并微调布局问题，无需为了“证明已经校验”重复调用同一 `validate`；任务失败时，`error.details.validation` 亦携带错误诊断定位。
 
 ## Job 状态与处理
 
@@ -25,7 +25,7 @@ wp --json job get <job_id>
 wp --json job wait <job_id> --timeout 120
 ```
 
-终态只有 `succeeded`、`failed`、`canceled`；`pending` 和 `running` 仍在执行。`succeeded` 后重新读取页面/组件；`failed`/`canceled` 必须保留 Job ID、错误码、错误消息和诊断摘要，不能把部分返回当成完成。
+终态只有 `succeeded`、`failed`、`canceled`；`pending` 和 `running` 仍在执行。`succeeded` 时检查 `result.validation` 并重新读取页面/组件；`failed`/`canceled` 必须保留 Job ID、错误码、错误消息和诊断摘要，不能把部分返回当成完成。
 
 人工重试前确认平台明确允许 retry。网络超时或暂时性 5xx 只对安全请求有限重试；版本冲突、权限错误、参数错误、资源缺失先重新读事实并修正。重试不同业务请求不得复用幂等键。
 

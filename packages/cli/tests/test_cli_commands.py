@@ -153,6 +153,41 @@ def test_page_create_failed_job_returns_nonzero_and_json(tmp_path) -> None:
     assert json.loads(result.output)["status"] == "failed"
 
 
+def test_page_create_succeeded_job_outputs_validation(tmp_path) -> None:
+    """页面创建任务成功时应输出包含 validation 布局诊断的结果 JSON。"""
+
+    payload_file = tmp_path / "page.json"
+    payload_file.write_text(
+        json.dumps({"project_id": 1, "name": "正常页面", "source_code": "<template><div /></template>"}),
+        encoding="utf-8",
+    )
+    fake_client = MagicMock()
+    fake_client.create_page.return_value = {"job_id": "job-1", "status": "pending"}
+    fake_client.poll_mutation_job.return_value = {
+        "job_id": "job-1",
+        "status": "succeeded",
+        "result": {
+            "page_id": 42,
+            "page_code": "page-42",
+            "version_no": 1,
+            "validation": "检查结论：passed_with_warnings\n摘要：页面代码检查通过，发现 1 个布局警告。\n警告：\n- [PAGE_RENDER_BOTTOM_OVERFLOW] 页面底部超出画布 42px。",
+        },
+        "error": None,
+    }
+
+    with patch("wp.commands.page.get_client", return_value=fake_client):
+        result = CliRunner().invoke(
+            main,
+            ["--json", "page", "create", "--payload-file", str(payload_file)],
+        )
+
+    assert result.exit_code == 0
+    parsed = json.loads(result.output)
+    assert parsed["status"] == "succeeded"
+    assert parsed["result"]["page_id"] == 42
+    assert "PAGE_RENDER_BOTTOM_OVERFLOW" in parsed["result"]["validation"]
+
+
 def test_whoami_uses_identity_endpoint() -> None:
     """whoami 应调用 External API 的身份接口，而不是工作空间列表接口。"""
 
