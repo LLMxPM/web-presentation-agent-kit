@@ -17,6 +17,7 @@ Web Presentation 的核心边界是“当前工作空间”。所有资源归属
 | 字体 | 注册的字体族/字体文件声明 | 只读查询；先有资源，再由平台注册/下发 | `font list` |
 | Runtime Kit | 版本化公开运行时能力目录 | 不是工作空间资产，也不是通用 UI 库；只用真实返回的 `.vN` import path | `runtime-kit list/get` |
 | Mutation Job | 页面/组件重任务的持久化执行记录 | 状态是 `pending/running/succeeded/failed/canceled` | `job get/wait/cancel/retry` |
+| Preview Artifact | 项目或页面的短期交互预览 | 必须基于成功写入后的最新对象创建；`preview_url` 不代表正式发布 | `preview get` |
 
 ## 归属、引用和快照不要混淆
 
@@ -26,6 +27,7 @@ Web Presentation 的核心边界是“当前工作空间”。所有资源归属
 - 页面/组件 `dependencies` 是当前版本源码真实依赖，不能用名称搜索结果替代。
 - 组件草稿不是稳定公共能力；引用前查询发布版本和真实 `import_path`。
 - 归档对象退出默认查询与操作边界；首版没有永久删除和 Restore。项目归档不会级联归档其页面、路由或共享资产。
+- Preview Artifact 是临时交付证据，不是项目或页面的持久化发布版本；用户要求预览或交付链接时才创建，截图仍单独作为视觉验证证据。
 
 ## 读取基线
 

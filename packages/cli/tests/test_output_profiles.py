@@ -1,0 +1,126 @@
+"""文件功能：验证 CLI 精简 JSON、原始 JSON 和资源返回字段投影。"""
+
+from __future__ import annotations
+
+import json
+from unittest.mock import MagicMock, patch
+
+from click.testing import CliRunner
+
+from wp.cli import main
+from wp.output_profiles import project_response
+
+
+def test_project_projection_keeps_user_names_and_page_counts() -> None:
+    """项目摘要必须保留用户交互名称和整体页面统计。"""
+
+    result = project_response(
+        {
+            "items": [
+                {
+                    "id": 7,
+                    "workspace_id": 1,
+                    "workspace_name": "演示空间",
+                    "name": "季度复盘",
+                    "routed_page_count": 4,
+                    "total_page_count": 5,
+                    "page_width": 1600,
+                    "internal_debug": "drop",
+                }
+            ],
+            "page": 1,
+            "page_size": 20,
+            "total": 1,
+        },
+        "project_list",
+    )
+
+    item = result["items"][0]
+    assert item["workspace_name"] == "演示空间"
+    assert item["routed_page_count"] == 4
+    assert item["total_page_count"] == 5
+    assert "page_width" not in item
+    assert "internal_debug" not in item
+
+
+def test_page_and_component_projections_hide_source_content() -> None:
+    """页面元数据和组件列表不应默认携带完整源码。"""
+
+    page = project_response(
+        {"id": 3, "workspace_name": "空间", "project_name": "项目", "page_content": "<template />"},
+        "page_detail",
+    )
+    component = project_response(
+        {"items": [{"id": 4, "name": "卡片", "content": "<template />", "preview_schema": "{}"}]},
+        "component_list",
+    )
+
+    assert page["workspace_name"] == "空间"
+    assert page["project_name"] == "项目"
+    assert "page_content" not in page
+    assert "content" not in component["items"][0]
+    assert "preview_schema" not in component["items"][0]
+
+
+def test_theme_validation_and_archive_projections_follow_profiles() -> None:
+    """主题嵌套详情保留，诊断和批量归档字段按场景收敛。"""
+
+    theme = project_response(
+        {"id": 1, "logo_asset": {"id": 8}, "body_font_family": {"id": 9}, "extra": "drop"},
+        "theme",
+    )
+    validation = project_response(
+        {
+            "entity_type": "page",
+            "valid": True,
+            "summary": "通过",
+            "diagnostics": [{"code": "ok"}],
+        },
+        "validation",
+    )
+    detailed_validation = project_response(
+        {
+            "entity_type": "page",
+            "valid": True,
+            "summary": "通过",
+            "diagnostics": [{"code": "ok"}],
+        },
+        "validation",
+        detail=True,
+    )
+    archive = project_response({"archived_ids": [1, 2], "failed_ids": [], "total": 2}, "archive")
+
+    assert theme["logo_asset"] == {"id": 8}
+    assert theme["body_font_family"] == {"id": 9}
+    assert "extra" not in theme
+    assert "diagnostics" not in validation
+    assert detailed_validation["diagnostics"] == [{"code": "ok"}]
+    assert archive == {"archived_ids": [1, 2], "total": 2}
+
+
+def test_raw_project_list_bypasses_projection() -> None:
+    """--raw 应保留 Backend 返回的精简投影之外字段。"""
+
+    client = MagicMock()
+    client.get.return_value = {
+        "items": [{"id": 7, "workspace_name": "空间", "internal_debug": "keep-in-raw"}],
+        "total": 1,
+    }
+
+    with patch("wp.commands.project.ApiClient", return_value=client):
+        compact = CliRunner().invoke(main, ["--json", "project", "list"])
+        raw = CliRunner().invoke(main, ["--raw", "project", "list"])
+
+    assert compact.exit_code == 0, compact.output
+    assert raw.exit_code == 0, raw.output
+    assert "internal_debug" not in json.loads(compact.output)["items"][0]
+    assert json.loads(raw.output)["items"][0]["internal_debug"] == "keep-in-raw"
+
+
+def test_json_and_raw_are_mutually_exclusive() -> None:
+    """两种机器输出模式不能同时指定。"""
+
+    result = CliRunner().invoke(main, ["--json", "--raw", "project", "list"])
+
+    assert result.exit_code != 0
+    assert "不能同时使用" in result.output

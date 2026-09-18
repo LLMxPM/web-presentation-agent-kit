@@ -7,7 +7,7 @@ import click
 from wp.client import ApiClient, ApiClientError
 from wp.commands.screenshot import screenshot_cmd
 from wp.config import get_profile, load_config
-from wp.formatter import print_code, print_error, print_json, print_table
+from wp.formatter import print_code, print_error, print_table
 from wp.commands.common import (
     confirm_archive,
     get_client,
@@ -55,7 +55,7 @@ def list_pages_cmd(ctx: click.Context, project_id: int, page: int, page_size: in
             params={"page": page, "page_size": page_size, "status": "active"},
         )
         if ctx.obj.get("as_json"):
-            print_json(res)
+            output_result(ctx, res, profile="page_list")
             return
 
         items = res.get("items", [])
@@ -79,7 +79,7 @@ def get_page_cmd(ctx: click.Context, page_id: int) -> None:
     try:
         page = client.get(f"/pages/{page_id}")
         if ctx.obj.get("as_json"):
-            print_json(page)
+            output_result(ctx, page, profile="page_detail")
             return
 
         rows = [
@@ -110,7 +110,7 @@ def get_page_source_cmd(ctx: click.Context, page_id: int) -> None:
     try:
         data = client.get(f"/pages/{page_id}/source")
         if ctx.obj.get("as_json"):
-            print_json(data)
+            output_result(ctx, data, profile="page_source")
             return
 
         code = data.get("source_code", "")
@@ -200,7 +200,7 @@ def archive_page_cmd(ctx: click.Context, page_id: int | None, ids_file: str | No
         if ids_file:
             ids = require_ids(read_json_file(ids_file, label="归档 ID"))
             confirm_archive(ids, yes=yes, label="页面")
-            output_result(ctx, client.post("/pages/batch-archive", json_data={"ids": ids}))
+            output_result(ctx, client.post("/pages/batch-archive", json_data={"ids": ids}), profile="archive")
             return
         if page_id is None:
             raise click.UsageError("必须提供 page_id 或 --ids-file。")
@@ -327,7 +327,7 @@ def validate_page_cmd(ctx: click.Context, page_id: int, mode: str, source_file: 
             if not edits_file:
                 raise click.UsageError("edits 模式必须提供 --edits-file。")
             payload["edits"] = require_array(read_json_file(edits_file, label="页面编辑操作"), label="页面编辑操作")
-        output_result(ctx, get_client(ctx).validate_entity(payload))
+        output_result(ctx, get_client(ctx).validate_entity(payload), profile="validation", detail=detail)
     except ApiClientError as err:
         handle_api_error("页面校验失败", err)
 

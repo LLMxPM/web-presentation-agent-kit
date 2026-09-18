@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import Any, Mapping
+from typing import Any, Literal, Mapping
 
 import httpx
 
@@ -102,7 +102,7 @@ class ApiClient:
         return headers
 
     def _handle_response(self, response: httpx.Response, *, idempotency_key: str | None = None) -> Any:
-        """解析响应，并把请求 ID 与写操作幂等键作为客户端元数据回显。"""
+        """解析响应并保持服务端成功 JSON 不被客户端元数据污染。"""
 
         if response.is_success:
             if response.status_code == 204 or not response.content:
@@ -113,13 +113,6 @@ class ApiClient:
                     result = response.json()
                 except (TypeError, ValueError):
                     return response.text
-                if isinstance(result, dict):
-                    metadata = {"request_id": response.headers.get("X-Request-ID")}
-                    if idempotency_key:
-                        metadata["idempotency_key"] = idempotency_key
-                    metadata = {key: value for key, value in metadata.items() if value}
-                    if metadata:
-                        result["_client"] = metadata
                 return result
             return response.text
 
@@ -187,6 +180,34 @@ class ApiClient:
         """调用页面/组件实体候选内容校验接口。"""
 
         return self.post("/validate/entity", json_data=dict(payload), idempotent=False)
+
+    def create_preview_artifact(
+        self,
+        *,
+        target_type: Literal["project", "page"],
+        target_id: int,
+        route: str | None = None,
+    ) -> dict[str, Any]:
+        """为项目或页面创建短期预览 artifact，并返回统一预览响应。"""
+
+        if target_id < 1:
+            raise ValueError("target_id 必须是正整数。")
+        if target_type == "project":
+            payload = {"route": route} if route is not None else {}
+            return self.post(
+                f"/projects/{target_id}/preview-artifact",
+                json_data=payload,
+                idempotent=False,
+            )
+        if target_type != "page":
+            raise ValueError("target_type 必须是 project 或 page。")
+        if route is not None:
+            raise ValueError("页面预览不支持 route 参数；页面入口由服务端解析。")
+        return self.post(
+            f"/pages/{target_id}/preview-artifact",
+            json_data={},
+            idempotent=False,
+        )
 
     def create_page(self, payload: Mapping[str, Any], *, idempotency_key: str | None = None) -> dict[str, Any]:
         """提交页面创建 Mutation Job。"""

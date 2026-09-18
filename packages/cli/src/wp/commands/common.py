@@ -11,6 +11,7 @@ import click
 from wp.client import ApiClient, ApiClientError
 from wp.config import get_profile, load_config
 from wp.formatter import print_error, print_json
+from wp.output_profiles import project_response
 
 
 def get_client(ctx: click.Context) -> ApiClient:
@@ -101,9 +102,11 @@ def require_ids(value: Any, *, label: str = "ID 列表") -> list[int]:
     return items
 
 
-def output_result(ctx: click.Context, value: Any) -> None:
-    """输出命令结果；复杂响应统一使用 JSON，保证 CLI 与 Agent 消费一致。"""
+def output_result(ctx: click.Context, value: Any, *, profile: str | None = None, detail: bool = False) -> None:
+    """输出原始或稳定投影后的 JSON，保证 CLI 与 Agent 消费一致。"""
 
+    if profile and not ctx.obj.get("raw"):
+        value = project_response(value, profile, detail=detail)
     print_json(value)
 
 

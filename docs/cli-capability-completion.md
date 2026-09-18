@@ -1,11 +1,12 @@
 # CLI External API v1 能力矩阵
 
-当前 CLI 按首版本地开发契约实现，不提供旧命令、旧参数或兼容层。Backend External API 是权限、Schema、错误码和任务状态的唯一事实源。
+当前 CLI 按首版本地开发契约实现，不提供旧命令、旧参数或兼容层。Backend External API 是权限、Schema、错误码和任务状态的唯一事实源。`--json` 输出稳定的 CLI 字段投影，`--raw` 保留完整 Backend 响应。
 
 ## 命令矩阵
 
 | 资源 | CLI 命令 |
 | --- | --- |
+| 预览地址 | `wp preview get --project-id <id> [--route <path>]`, `wp preview get --page-id <id>`；返回短期 `preview_url` |
 | 系统 | `wp system version`, `wp system health` |
 | 标准 | `wp standards page`, `wp standards component` |
 | 动态请求契约 | 目标叶子命令的 `--help` 从 Backend OpenAPI 展示 |

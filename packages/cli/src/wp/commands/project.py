@@ -6,7 +6,7 @@ import click
 
 from wp.client import ApiClient, ApiClientError
 from wp.config import get_profile, load_config
-from wp.formatter import print_error, print_json, print_success, print_table
+from wp.formatter import print_error, print_success, print_table
 from wp.commands.common import (
     confirm_archive,
     get_client,
@@ -43,7 +43,7 @@ def list_projects_cmd(ctx: click.Context, page: int, page_size: int, keyword: st
             params["keyword"] = keyword
         res = client.get("/projects", params=params)
         if ctx.obj.get("as_json"):
-            print_json(res)
+            output_result(ctx, res, profile="project_list")
             return
 
         items = res.get("items", [])
@@ -67,7 +67,7 @@ def get_project_cmd(ctx: click.Context, project_id: int) -> None:
     try:
         project = client.get(f"/projects/{project_id}")
         if ctx.obj.get("as_json"):
-            print_json(project)
+            output_result(ctx, project, profile="project_detail")
             return
 
         print_success(f"项目详情: [bold]{project.get('name')}[/bold] (ID: {project_id})")
@@ -76,8 +76,10 @@ def get_project_cmd(ctx: click.Context, project_id: int) -> None:
             ["名称", str(project.get("name"))],
             ["描述", str(project.get("description") or "-")],
             ["工作空间 ID", str(project.get("workspace_id"))],
-            ["主题 ID", str(project.get("theme_id") or "-")],
-            ["样式 ID", str(project.get("style_id") or "-")],
+            ["工作空间名称", str(project.get("workspace_name") or "-")],
+            ["主题 Key", str(project.get("theme_key") or "-")],
+            ["路由页面数", str(project.get("routed_page_count", 0))],
+            ["页面总数", str(project.get("total_page_count", 0))],
             ["状态", str(project.get("status"))],
             ["创建时间", str(project.get("created_at"))],
         ]
@@ -255,7 +257,7 @@ def archive_project_cmd(ctx: click.Context, project_id: int | None, ids_file: st
         if ids_file:
             ids = require_ids(read_json_file(ids_file, label="归档 ID"))
             confirm_archive(ids, yes=yes, label="项目")
-            output_result(ctx, client.post("/projects/batch-archive", json_data={"ids": ids}))
+            output_result(ctx, client.post("/projects/batch-archive", json_data={"ids": ids}), profile="archive")
             return
         if project_id is None:
             raise click.UsageError("必须提供 project_id 或 --ids-file。")

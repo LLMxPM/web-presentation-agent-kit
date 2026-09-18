@@ -45,7 +45,7 @@ def list_components_cmd(ctx: click.Context, page: int, page_size: int, keyword: 
     try:
         result = get_client(ctx).get("/components", params={key: value for key, value in params.items() if value is not None})
         if ctx.obj.get("as_json"):
-            output_result(ctx, result)
+            output_result(ctx, result, profile="component_list")
             return
         rows = [
             [item.get("id"), item.get("import_name", "-"), item.get("name", "-"), item.get("component_type", "-"), item.get("status", "-")]
@@ -63,7 +63,7 @@ def get_component_cmd(ctx: click.Context, component_id: int) -> None:
     """获取组件详情。"""
 
     try:
-        output_result(ctx, get_client(ctx).get(f"/components/{component_id}"))
+        output_result(ctx, get_client(ctx).get(f"/components/{component_id}"), profile="component_detail")
     except ApiClientError as err:
         handle_api_error("获取组件失败", err)
 
@@ -271,7 +271,7 @@ def validate_component_cmd(ctx: click.Context, component_id: int, mode: str, sou
     if preview_schema_file:
         payload["preview_schema"] = require_object(read_json_file(preview_schema_file, label="Preview Schema"), label="Preview Schema")
     try:
-        output_result(ctx, get_client(ctx).validate_entity(payload))
+        output_result(ctx, get_client(ctx).validate_entity(payload), profile="validation", detail=detail)
     except ApiClientError as err:
         handle_api_error("组件校验失败", err)
 
@@ -310,7 +310,7 @@ def archive_component_cmd(ctx: click.Context, component_id: int | None, ids_file
         if ids_file:
             ids = require_ids(read_json_file(ids_file, label="归档 ID"))
             confirm_archive(ids, yes=yes, label="组件")
-            output_result(ctx, client.post("/components/batch-archive", json_data={"ids": ids}))
+            output_result(ctx, client.post("/components/batch-archive", json_data={"ids": ids}), profile="archive")
             return
         if component_id is None:
             raise click.UsageError("必须提供 component_id 或 --ids-file。")

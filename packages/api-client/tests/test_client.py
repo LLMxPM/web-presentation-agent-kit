@@ -1,5 +1,6 @@
 """文件功能：验证共享 API Client 的 External API v1 路径、认证和安全边界。"""
 
+import json
 from unittest.mock import Mock
 
 import httpx
@@ -60,7 +61,7 @@ def test_mutation_cancel_replays_key_and_accepts_202() -> None:
 
     assert captured == {"path": "/api/v1/jobs/mutations/job-1/cancel", "key": "cancel-key-1"}
     assert result["status"] == "running"
-    assert result["_client"] == {"request_id": "req-1", "idempotency_key": "cancel-key-1"}
+    assert result == {"job_id": "job-1", "status": "running"}
     client.close()
 
 
@@ -147,6 +148,32 @@ def test_typed_capability_helpers_use_canonical_external_paths() -> None:
         "/api/v1/pages/1/copy",
         "/api/v1/components",
         "/api/v1/jobs/mutations/components/metadata",
+    ]
+    client.close()
+
+
+def test_create_preview_artifact_reuses_one_typed_flow_for_project_and_page() -> None:
+    """项目与页面预览应复用同一个 Client 方法，只切换资源目标路径。"""
+
+    requests: list[tuple[str, dict[str, object] | None]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        payload = None
+        if request.content:
+            payload = json.loads(request.content)
+        requests.append((request.url.path, payload))
+        return httpx.Response(200, json={"preview_url": "https://example.test/preview"})
+
+    client = ApiClient("https://backend.test", token="pat_secret", workspace_id=9)
+    client.client.close()
+    client.client = httpx.Client(base_url=client.endpoint, transport=httpx.MockTransport(handler))
+
+    client.create_preview_artifact(target_type="project", target_id=7, route="/overview")
+    client.create_preview_artifact(target_type="page", target_id=21)
+
+    assert requests == [
+        ("/api/v1/projects/7/preview-artifact", {"route": "/overview"}),
+        ("/api/v1/pages/21/preview-artifact", {}),
     ]
     client.close()
 

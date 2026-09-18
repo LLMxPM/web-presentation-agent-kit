@@ -69,6 +69,25 @@ wp skill install --scope project --agent all --dry-run
 wp skill export web-presentation
 ```
 
+获取短期预览地址：
+
+```bash
+wp preview get --project-id <project_id>
+wp preview get --project-id <project_id> --route /overview
+wp preview get --page-id <page_id>
+```
+
+项目和页面目标共用同一个预览命令与 API Client 方法；页面模块入口由 Backend 解析。
+
+JSON 输出模式：
+
+```bash
+wp --json project list
+wp --raw project list
+```
+
+`--json` 输出面向 Agent 的稳定字段；`--raw` 输出 Backend 原始 JSON，二者不能同时使用。预览地址是短期 Preview Artifact 地址，不等同于正式发布地址。
+
 首次使用建议进入智能体将要工作的项目目录，直接运行 `wp skill install`，然后选择 `2. 项目`。项目级安装会进入项目根目录的 `.agents/skills`、`.claude/skills` 或 `.qoder/skills`，不是安装到 Python 包目录。安装后重新加载智能体窗口或新建会话。
 
 目录映射：
@@ -81,7 +100,7 @@ wp skill export web-presentation
 
 Skill 与 CLI 一起发布，但使用独立版本。`wp skill status` 会识别缺失、过期、较新、不兼容、用户修改和未受管理等状态；普通升级不会覆盖用户修改，`--force` 会先保留同级备份。CLI 升级不会隐式改写已安装 Skill，需要重新运行 `wp skill install` 完成同步。
 
-当前版本关系：CLI `0.2.1` 内置 `web-presentation` Skill `1.2.0`，Skill 声明的 CLI 兼容范围为 `>=0.2.1,<0.3.0`。构建时会把这组关系与规范化内容 SHA-256 写入 manifest。
+当前版本关系：CLI `0.3.0` 内置 `web-presentation` Skill `1.3.0`，Skill 声明的 CLI 兼容范围为 `>=0.3.0,<0.4.0`。构建时会把这组关系与规范化内容 SHA-256 写入 manifest。
 
 Windsurf 和 WorkBuddy 不属于本地目录安装目标。`wp skill export` 生成的标准 ZIP 可用于 WorkBuddy 等支持本地上传的产品；CLI 不从 URL 或第三方仓库下载 Skill。
 
@@ -122,6 +141,10 @@ wp job wait <job_id>
 
 写入命令支持 `--idempotency-key <key>`；网络超时后需要重放同一业务请求时复用原 key，不要把同一个 key 用于不同请求。
 
+
+### 0.3.0 行为变更
+
+`--json` 现在输出面向 Agent 的稳定字段投影；`--raw` 输出完整 Backend 原始 JSON，二者不能同时使用。Project、Page、Component、Asset、Theme、Style、Validation 和 Preview 命令按场景区分列表、详情、源码和诊断字段；成功响应不再注入 `_client` 元数据。预览地址通过 `wp preview get` 获取，属于短期 Preview Artifact。
 
 ### 0.2.1 行为变更
 

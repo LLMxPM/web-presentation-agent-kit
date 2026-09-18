@@ -164,4 +164,4 @@ pipx install web-presentation-cli
 
 ### 契约可用性与多页交付
 
-CLI 0.2.1 的契约叶子帮助失败时立即非零退出，不输出部分帮助；`wp doctor` 独立检查 OpenAPI，有错误时退出 1。请先部署平台 `/openapi.json` Gateway 修复，再升级 CLI 和内置 Skill 1.2.0。Skill 现包含多页 Job 编排、路由挂载与最终截图核对，以及主题语义类消费示例。具体安装与行为变更见 [CLI 说明](packages/cli/README.md)。
+CLI 0.3.0 的契约叶子帮助失败时立即非零退出，不输出部分帮助；`wp doctor` 独立检查 OpenAPI，有错误时退出 1。`--json` 输出稳定的精简业务字段，`--raw` 保留完整 Backend 响应；内置 Skill 已升级为 1.3.0，并补充短期预览地址交付流程。具体安装与行为变更见 [CLI 说明](packages/cli/README.md)。

@@ -1,6 +1,6 @@
 # 校验与交付
 
-页面和组件写入由 Backend 的 Mutation Job 负责编译、渲染和布局检查。外部 Agent 的职责是提交正确基线、等待终态、读取结果并用截图验证真实视觉。
+页面和组件写入由 Backend 的 Mutation Job 负责编译、渲染和布局检查。外部 Agent 的职责是提交正确基线、等待终态、重新读取最新对象；用户要求交付链接时获取短期预览地址，并用截图验证真实视觉。
 
 ## 候选校验和写入校验
 
@@ -30,6 +30,16 @@ wp --json job wait <job_id> --timeout 120
 人工重试前确认平台明确允许 retry。网络超时或暂时性 5xx 只对安全请求有限重试；版本冲突、权限错误、参数错误、资源缺失先重新读事实并修正。重试不同业务请求不得复用幂等键。
 
 ## 视觉复核
+
+用户要求查看可交互效果或交付链接时，获取短期预览地址：
+
+```bash
+wp --json preview get --project-id <project_id>
+wp --json preview get --project-id <project_id> --route /overview
+wp --json preview get --page-id <page_id>
+```
+
+`preview_url` 只用于当前 Preview Artifact 的短期访问，不代表正式发布；项目入口可通过 `--route` 指定，页面入口由 Backend 解析。预览地址用于交互检查，截图用于固定画布的视觉证据，两者不能互相替代。
 
 成功后获取最新截图：
 

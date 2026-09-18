@@ -26,6 +26,7 @@ def test_cli_help() -> None:
     assert "workspace" in result.output
     assert "project" in result.output
     assert "page" in result.output
+    assert "preview" in result.output
     assert "component" in result.output
     assert "asset" in result.output
     assert "build" not in result.output
@@ -43,7 +44,17 @@ def test_cli_version() -> None:
     result = CliRunner().invoke(main, ["--version"])
 
     assert result.exit_code == 0, result.output
-    assert result.output.strip() == "wp, version 0.2.1"
+    assert result.output.strip() == "wp, version 0.3.0"
+
+
+def test_raw_option_is_exposed_and_mutually_exclusive_with_json() -> None:
+    """顶层帮助应暴露原始 JSON 模式，两个机器输出模式不能并用。"""
+
+    help_result = CliRunner().invoke(main, ["--help"])
+    conflict_result = CliRunner().invoke(main, ["--json", "--raw", "project", "list"])
+
+    assert "--raw" in help_result.output
+    assert conflict_result.exit_code != 0
 
 
 def test_page_validate_help_describes_structured_edits() -> None:

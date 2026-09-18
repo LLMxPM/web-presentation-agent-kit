@@ -133,7 +133,7 @@ def test_incompatible_newer_install_still_requires_explicit_downgrade(tmp_path: 
     install_skill(skill, target)
     marker_path = target.path / ".wp-install.json"
     marker = json.loads(marker_path.read_text(encoding="utf-8"))
-    marker.update({"skill_version": "2.0.0", "requires_cli": ">=0.3.0,<0.4.0"})
+    marker.update({"skill_version": "2.0.0", "requires_cli": ">=0.4.0,<0.5.0"})
     marker_path.write_text(json.dumps(marker), encoding="utf-8")
 
     assert inspect_target(skill, target)["status"] == "incompatible"

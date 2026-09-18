@@ -43,7 +43,7 @@ def list_assets_cmd(ctx: click.Context, page: int, page_size: int, asset_type: s
     try:
         result = get_client(ctx).get("/assets", params={key: value for key, value in params.items() if value is not None})
         if ctx.obj.get("as_json"):
-            output_result(ctx, result)
+            output_result(ctx, result, profile="asset_list")
             return
         rows = [[item.get("id"), item.get("name", "-"), item.get("asset_type", "-"), item.get("status", "-")] for item in result.get("items", [])]
         print_table("资源列表", ["ID", "名称", "类型", "状态"], rows)
@@ -58,7 +58,7 @@ def get_asset_cmd(ctx: click.Context, asset_id: int) -> None:
     """获取资源详情。"""
 
     try:
-        output_result(ctx, get_client(ctx).get(f"/assets/{asset_id}"))
+        output_result(ctx, get_client(ctx).get(f"/assets/{asset_id}"), profile="asset_detail")
     except ApiClientError as err:
         handle_api_error("获取资源详情失败", err)
 
@@ -223,7 +223,7 @@ def archive_asset_cmd(ctx: click.Context, asset_id: int | None, ids_file: str | 
         if ids_file:
             ids = require_ids(read_json_file(ids_file, label="归档 ID"))
             confirm_archive(ids, yes=yes, label="资源")
-            output_result(ctx, client.post("/assets/batch-archive", json_data={"ids": ids}))
+            output_result(ctx, client.post("/assets/batch-archive", json_data={"ids": ids}), profile="archive")
             return
         if asset_id is None:
             raise click.UsageError("必须提供 asset_id 或 --ids-file。")

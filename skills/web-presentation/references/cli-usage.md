@@ -49,7 +49,19 @@ wp component update --help
 
 契约失败先运行 `wp doctor`，区分健康、契约和认证结果；任一 error 使 doctor 退出 1。HTML 响应应检查网关是否返回前端入口，路径/方法/引用缺失应检查服务端与 CLI 契约。修复后重新读取帮助，不猜字段、不以试探写入寻找 Schema，也不读取内部源码绕过公开契约。没有缓存、离线 Schema 或自动重试。
 
-`--json` 用于稳定解析表格型输出，复杂响应默认已经是 JSON。不要解析 Rich 表格文案来获取 ID、版本或状态。
+`--json` 用于稳定解析面向 Agent 的精简业务字段，复杂响应默认已经是 JSON。`--raw` 输出 Backend 原始 JSON，并自动启用 JSON 输出；二者不能同时使用。不要解析 Rich 表格文案来获取 ID、版本或状态。
+
+## 获取短期预览地址
+
+用户要求查看效果、交付链接或最终汇报时，先确认目标对象已成功写入并重新读取最新版本，再按目标调用：
+
+```bash
+wp --json preview get --project-id <project_id>
+wp --json preview get --project-id <project_id> --route /overview
+wp --json preview get --page-id <page_id>
+```
+
+项目预览支持 `--route`，页面预览不支持 `--route`；项目和页面目标只能选择一种。响应中的 `preview_url` 是短期 Preview Artifact 地址，不是正式发布地址。
 
 ## 文件参数
 

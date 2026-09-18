@@ -6,7 +6,7 @@ import click
 
 from wp.client import ApiClient, ApiClientError
 from wp.config import get_profile, load_config
-from wp.formatter import print_error, print_json, print_table
+from wp.formatter import print_error, print_table
 from wp.commands.common import (
     confirm_archive,
     get_client,
@@ -39,12 +39,12 @@ def list_styles_cmd(ctx: click.Context, page: int, page_size: int) -> None:
     try:
         res = client.get("/styles", params={"page": page, "page_size": page_size})
         if ctx.obj.get("as_json"):
-            print_json(res)
+            output_result(ctx, res, profile="style")
             return
 
         items = res.get("items", [])
-        rows = [[s["id"], s.get("name", "-"), s.get("is_default", False), s.get("status", "-")] for s in items]
-        print_table("样式方案列表", ["ID", "名称", "是否默认", "状态"], rows)
+        rows = [[s["id"], s.get("name", "-"), s.get("key", "-")] for s in items]
+        print_table("样式方案列表", ["ID", "名称", "Key"], rows)
     except ApiClientError as err:
         print_error(f"获取样式列表失败: {err.message}", code=err.code)
         raise SystemExit(1)
@@ -63,15 +63,14 @@ def get_style_cmd(ctx: click.Context, style_id: int) -> None:
     try:
         style = client.get(f"/styles/{style_id}")
         if ctx.obj.get("as_json"):
-            print_json(style)
+            output_result(ctx, style, profile="style")
             return
 
         rows = [
             ["ID", str(style.get("id"))],
             ["名称", str(style.get("name"))],
-            ["是否默认", str(style.get("is_default"))],
+            ["Key", str(style.get("key"))],
             ["描述", str(style.get("description") or "-")],
-            ["状态", str(style.get("status"))],
         ]
         print_table(f"样式方案 (ID: {style_id}) 详情", ["属性", "值"], rows)
     except ApiClientError as err:
@@ -156,7 +155,7 @@ def archive_style_cmd(ctx: click.Context, style_id: int | None, ids_file: str | 
         if ids_file:
             ids = require_ids(read_json_file(ids_file, label="归档 ID"))
             confirm_archive(ids, yes=yes, label="样式")
-            output_result(ctx, client.post("/styles/batch-archive", json_data={"ids": ids}))
+            output_result(ctx, client.post("/styles/batch-archive", json_data={"ids": ids}), profile="archive")
             return
         if style_id is None:
             raise click.UsageError("必须提供 style_id 或 --ids-file。")

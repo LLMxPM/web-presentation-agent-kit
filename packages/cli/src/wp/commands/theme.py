@@ -6,7 +6,7 @@ import click
 
 from wp.client import ApiClient, ApiClientError
 from wp.config import get_profile, load_config
-from wp.formatter import print_error, print_json, print_table
+from wp.formatter import print_error, print_table
 from wp.commands.common import (
     confirm_archive,
     get_client,
@@ -39,7 +39,7 @@ def list_themes_cmd(ctx: click.Context, page: int, page_size: int) -> None:
     try:
         res = client.get("/themes", params={"page": page, "page_size": page_size})
         if ctx.obj.get("as_json"):
-            print_json(res)
+            output_result(ctx, res, profile="theme")
             return
 
         items = res.get("items", [])
@@ -63,7 +63,7 @@ def get_theme_cmd(ctx: click.Context, theme_id: int) -> None:
     try:
         theme = client.get(f"/themes/{theme_id}")
         if ctx.obj.get("as_json"):
-            print_json(theme)
+            output_result(ctx, theme, profile="theme")
             return
 
         rows = [
@@ -71,7 +71,6 @@ def get_theme_cmd(ctx: click.Context, theme_id: int) -> None:
             ["Key", str(theme.get("key"))],
             ["名称", str(theme.get("name"))],
             ["描述", str(theme.get("description") or "-")],
-            ["状态", str(theme.get("status"))],
         ]
         print_table(f"主题 (ID: {theme_id}) 详情", ["属性", "值"], rows)
     except ApiClientError as err:
@@ -153,7 +152,7 @@ def archive_theme_cmd(ctx: click.Context, theme_id: int | None, ids_file: str | 
         if ids_file:
             ids = require_ids(read_json_file(ids_file, label="归档 ID"))
             confirm_archive(ids, yes=yes, label="主题")
-            output_result(ctx, client.post("/themes/batch-archive", json_data={"ids": ids}))
+            output_result(ctx, client.post("/themes/batch-archive", json_data={"ids": ids}), profile="archive")
             return
         if theme_id is None:
             raise click.UsageError("必须提供 theme_id 或 --ids-file。")
