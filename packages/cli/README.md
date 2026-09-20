@@ -51,14 +51,14 @@ wp profile use production
 
 ## Agent Skill 管理
 
-CLI 内置 `web-presentation` Skill，可离线安装到受支持 Agent。交互式终端省略参数时会按实际安装目录分组选择：共用 `.agents/skills` 的五个兼容 Agent 作为一组，Claude Code 和 Qoder 各自一组；脚本、管道或 JSON 模式必须显式传入参数。
+CLI 内置 `web-presentation` Skill，可离线安装到受支持 Agent。交互式终端省略参数时会按实际安装目录分组选择：共用 `.agents/skills` 的兼容 Agent 作为一组，Claude Code、MiMo、WorkBuddy 各自一组；脚本、管道或 JSON 模式必须显式传入参数。
 
 ```bash
 # 当前用户全局安装
 wp skill install --scope global --agent all
 
 # 当前项目安装；默认解析 Git 根目录，也可用 --project-dir 指定
-wp skill install --scope project --agent codex --agent qoder
+wp skill install --scope project --agent codex --agent mimo --agent workbuddy
 
 # 状态与卸载
 wp skill status --scope global --agent all
@@ -88,7 +88,7 @@ wp --raw project list
 
 `--json` 输出面向 Agent 的稳定字段；`--raw` 输出 Backend 原始 JSON，二者不能同时使用。预览地址是短期 Preview Artifact 地址，不等同于正式发布地址。
 
-首次使用建议进入智能体将要工作的项目目录，直接运行 `wp skill install`，然后选择 `2. 项目`。项目级安装会进入项目根目录的 `.agents/skills`、`.claude/skills` 或 `.qoder/skills`，不是安装到 Python 包目录。安装后重新加载智能体窗口或新建会话。
+首次使用建议进入智能体将要工作的项目目录，直接运行 `wp skill install`，然后选择 `2. 项目`。项目级安装会进入项目根目录下对应 Agent 的 Skill 目录（如 `.agents/skills`、`.claude/skills`、`.mimocode/skills`、`.workbuddy/skills`），不是安装到 Python 包目录。安装后重新加载智能体窗口或新建会话。
 
 目录映射：
 
@@ -96,13 +96,14 @@ wp --raw project list
 | --- | --- | --- |
 | Codex、Cursor、GitHub Copilot、Gemini CLI、OpenCode | `.agents/skills` | `~/.agents/skills` |
 | Claude Code | `.claude/skills` | `~/.claude/skills` |
-| Qoder | `.qoder/skills` | `~/.qoder/skills` |
+| MiMo | `.mimocode/skills` | `~/.config/mimocode/skills` |
+| WorkBuddy | `.workbuddy/skills` | `~/.workbuddy/skills` |
 
 Skill 与 CLI 一起发布，但使用独立版本。`wp skill status` 会识别缺失、过期、较新、不兼容、用户修改和未受管理等状态；普通升级不会覆盖用户修改，`--force` 会先保留同级备份。CLI 升级不会隐式改写已安装 Skill，需要重新运行 `wp skill install` 完成同步。
 
-当前版本关系：CLI `0.3.0` 内置 `web-presentation` Skill `1.3.0`，Skill 声明的 CLI 兼容范围为 `>=0.3.0,<0.4.0`。构建时会把这组关系与规范化内容 SHA-256 写入 manifest。
+当前版本关系：CLI `0.3.0` 内置 `web-presentation` Skill `1.3.1`，Skill 声明的 CLI 兼容范围为 `>=0.3.0,<0.4.0`。构建时会把这组关系与规范化内容 SHA-256 写入 manifest。
 
-Windsurf 和 WorkBuddy 不属于本地目录安装目标。`wp skill export` 生成的标准 ZIP 可用于 WorkBuddy 等支持本地上传的产品；CLI 不从 URL 或第三方仓库下载 Skill。
+Windsurf 不属于本地目录安装目标。`wp skill export` 生成的标准 ZIP 可用于支持本地上传的产品；CLI 不从 URL 或第三方仓库下载 Skill。
 
 ## 复制给智能体：安装 CLI 和 Skill
 

@@ -23,8 +23,9 @@ _AGENT_CHOICES = (*SUPPORTED_AGENTS, "all")
 _INTERACTIVE_AGENT_GROUPS = {
     "1": ("codex", "cursor", "copilot", "gemini", "opencode"),
     "2": ("claude",),
-    "3": ("qoder",),
-    "4": ("all",),
+    "3": ("mimo",),
+    "4": ("workbuddy",),
+    "5": ("all",),
 }
 
 
@@ -69,19 +70,19 @@ def _resolve_selection(
             "安装",
             "安装",
             "只会安装一份 Skill",
-            "将 Skill 安装到以上三个实际目录",
+            "将 Skill 安装到以上四个实际目录",
         ),
         "status": (
             "检查",
             "检查",
             "只需检查这一份 Skill",
-            "检查以上三个实际目录中的 Skill",
+            "检查以上四个实际目录中的 Skill",
         ),
         "uninstall": (
             "卸载",
             "卸载",
             "只会卸载这一份 Skill",
-            "卸载以上三个实际目录中的 Skill",
+            "卸载以上四个实际目录中的 Skill",
         ),
     }
     scope_action, target_action, shared_action, all_action = operation_labels[operation]
@@ -103,11 +104,13 @@ def _resolve_selection(
         if scope == "project":
             agents_path = "项目根目录下的 .agents/skills"
             claude_path = "项目根目录下的 .claude/skills"
-            qoder_path = "项目根目录下的 .qoder/skills"
+            mimo_path = "项目根目录下的 .mimocode/skills"
+            workbuddy_path = "项目根目录下的 .workbuddy/skills"
         else:
             agents_path = "用户目录下的 ~/.agents/skills"
             claude_path = "用户目录下的 ~/.claude/skills"
-            qoder_path = "用户目录下的 ~/.qoder/skills"
+            mimo_path = "用户目录下的 ~/.config/mimocode/skills"
+            workbuddy_path = "用户目录下的 ~/.workbuddy/skills"
         click.echo(f"请选择 Agent {target_action}目标（可用逗号多选）：")
         click.echo(
             f"  1) {agents_path} 兼容组：Codex、Cursor、GitHub Copilot、"
@@ -115,8 +118,9 @@ def _resolve_selection(
         )
         click.echo(f"     以上 Agent 共用同一个目录，{shared_action}。")
         click.echo(f"  2) {claude_path}：Claude Code")
-        click.echo(f"  3) {qoder_path}：Qoder")
-        click.echo(f"  4) 全部：{all_action}")
+        click.echo(f"  3) {mimo_path}：MiMo")
+        click.echo(f"  4) {workbuddy_path}：WorkBuddy")
+        click.echo(f"  5) 全部：{all_action}")
         raw_groups = click.prompt("请输入目标编号", default="1")
         group_ids = tuple(item.strip() for item in raw_groups.split(",") if item.strip())
         unknown = sorted(set(group_ids) - set(_INTERACTIVE_AGENT_GROUPS))

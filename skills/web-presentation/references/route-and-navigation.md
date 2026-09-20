@@ -12,7 +12,7 @@
 {"routes":[{"route_type":"page","route":"cover","order":0,"hidden":false,"page_id":1},{"route_type":"group","route":"chapter-1","group_title":"第一章","order":1,"children":[{"route":"overview","order":0,"hidden":false,"page_id":2}]}]}
 ```
 
-`wp project route replace <project_id> --route-file ./route-tree.json --idempotency-key <key>` 是整树替换，遗漏的节点会被移除。GET 响应包含 id、page_code、display_title 等只读字段，不能原样回写；按当前写入 Schema 构造请求。
+`wp project route replace <project_id> --route-file .tmp/web-presentation/route-tree.json --idempotency-key <key>` 是整树替换，遗漏的节点会被移除。GET 响应包含 id、page_code、display_title 等只读字段，不能原样回写；按当前写入 Schema 构造请求。
 
 替换前重新读取整树并保留任务范围外的节点。当前接口没有版本条件，读取后仍可能发生并发覆盖；幂等键不能解决并发冲突。不要并行修改同一项目路由，发现基线变化应重新协调，而非盲目覆盖。
 

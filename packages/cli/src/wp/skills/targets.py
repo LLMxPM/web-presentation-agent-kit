@@ -6,7 +6,16 @@ from dataclasses import dataclass
 from pathlib import Path
 import subprocess
 
-SUPPORTED_AGENTS = ("codex", "cursor", "copilot", "gemini", "opencode", "claude", "qoder")
+SUPPORTED_AGENTS = (
+    "codex",
+    "cursor",
+    "copilot",
+    "gemini",
+    "opencode",
+    "mimo",
+    "workbuddy",
+    "claude",
+)
 SHARED_AGENTS = frozenset({"codex", "cursor", "copilot", "gemini", "opencode"})
 
 
@@ -55,6 +64,20 @@ def normalize_agents(agents: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(dict.fromkeys(agents))
 
 
+def _agent_skills_root(base: Path, scope: str, agent_group: str) -> Path:
+    """按 Agent 与安装范围解析 Skill 目录；MiMo 全局路径与其它 Agent 不同。"""
+
+    if agent_group == "shared":
+        return base / ".agents" / "skills"
+    if agent_group == "claude":
+        return base / ".claude" / "skills"
+    if agent_group == "mimo":
+        return (base / ".config" / "mimocode" / "skills") if scope == "global" else (base / ".mimocode" / "skills")
+    if agent_group == "workbuddy":
+        return base / ".workbuddy" / "skills"
+    raise ValueError(f"未知的 Agent 目录分组: {agent_group}")
+
+
 def plan_targets(
     skill_name: str,
     *,
@@ -73,11 +96,13 @@ def plan_targets(
 
     shared = tuple(agent for agent in selected if agent in SHARED_AGENTS)
     if shared:
-        groups.append((base / ".agents" / "skills", shared))
+        groups.append((_agent_skills_root(base, scope, "shared"), shared))
     if "claude" in selected:
-        groups.append((base / ".claude" / "skills", ("claude",)))
-    if "qoder" in selected:
-        groups.append((base / ".qoder" / "skills", ("qoder",)))
+        groups.append((_agent_skills_root(base, scope, "claude"), ("claude",)))
+    if "mimo" in selected:
+        groups.append((_agent_skills_root(base, scope, "mimo"), ("mimo",)))
+    if "workbuddy" in selected:
+        groups.append((_agent_skills_root(base, scope, "workbuddy"), ("workbuddy",)))
 
     return [
         SkillTarget(path=root / skill_name, base=base, agents=group_agents, scope=scope)

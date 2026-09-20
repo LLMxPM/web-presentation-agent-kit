@@ -54,7 +54,7 @@ wp doctor
 wp skill install
 ```
 
-交互界面中的 `2. 项目` 是推荐选项，会把 Skill 安装到项目根目录的 Agent Skill 目录；`1. 全局` 才会安装到当前用户目录。Codex、Cursor、GitHub Copilot、Gemini CLI 和 OpenCode 共用 `.agents/skills/web-presentation`，只安装一份；Claude Code 使用 `.claude/skills/web-presentation`，Qoder 使用 `.qoder/skills/web-presentation`。
+交互界面中的 `2. 项目` 是推荐选项，会把 Skill 安装到项目根目录的 Agent Skill 目录；`1. 全局` 才会安装到当前用户目录。Codex、Cursor、GitHub Copilot、Gemini CLI 和 OpenCode 共用 `.agents/skills/web-presentation`，只安装一份；Claude Code 使用 `.claude/skills/web-presentation`，MiMo 使用 `.mimocode/skills/web-presentation`（全局为 `~/.config/mimocode/skills/web-presentation`），WorkBuddy 使用 `.workbuddy/skills/web-presentation`。
 
 明确安装当前项目的全部兼容目录时，可以运行：
 
@@ -122,13 +122,13 @@ wp skill install
 # 非交互式安装到项目内的全部受支持 Agent
 wp skill install --scope project --agent all
 
-# 查看状态、卸载或导出可供 WorkBuddy 等产品手动导入的标准 ZIP
+# 查看状态、卸载或导出标准 ZIP
 wp skill status --scope project --agent all
 wp skill uninstall --scope project --agent all --yes
 wp skill export
 ```
 
-Codex、Cursor、GitHub Copilot、Gemini CLI 和 OpenCode 共用 `.agents/skills`；Claude Code 使用 `.claude/skills`，Qoder 使用 `.qoder/skills`。支持项目级和当前用户全局安装，不修改 Agent 配置，也不支持任意第三方 Skill 来源。
+Codex、Cursor、GitHub Copilot、Gemini CLI 和 OpenCode 共用 `.agents/skills`；Claude Code 使用 `.claude/skills`，MiMo 使用 `.mimocode/skills`（全局 `~/.config/mimocode/skills`），WorkBuddy 使用 `.workbuddy/skills`。支持项目级和当前用户全局安装，不修改 Agent 配置，也不支持任意第三方 Skill 来源。
 
 CLI 通过本地 Profile 配置 Backend 地址、PAT 和默认工作空间。对外接口公共前缀固定为 `/api/v1`。用户安装与初始配置应优先参考上面的快速开始，不需要克隆本仓库。
 
@@ -164,4 +164,4 @@ pipx install web-presentation-cli
 
 ### 契约可用性与多页交付
 
-CLI 0.3.0 的契约叶子帮助失败时立即非零退出，不输出部分帮助；`wp doctor` 独立检查 OpenAPI，有错误时退出 1。`--json` 输出稳定的精简业务字段，`--raw` 保留完整 Backend 响应；内置 Skill 已升级为 1.3.0，并补充短期预览地址交付流程。具体安装与行为变更见 [CLI 说明](packages/cli/README.md)。
+CLI 0.3.0 的契约叶子帮助失败时立即非零退出，不输出部分帮助；`wp doctor` 独立检查 OpenAPI，有错误时退出 1。`--json` 输出稳定的精简业务字段，`--raw` 保留完整 Backend 响应；内置 Skill 当前为 `1.3.1`，临时文件统一约定在 `.tmp/web-presentation/`，并补充短期预览地址交付流程。具体安装与行为变更见 [CLI 说明](packages/cli/README.md)。

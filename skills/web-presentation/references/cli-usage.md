@@ -63,6 +63,22 @@ wp --json preview get --page-id <page_id>
 
 项目预览支持 `--route`，页面预览不支持 `--route`；项目和页面目标只能选择一种。响应中的 `preview_url` 是短期 Preview Artifact 地址，不是正式发布地址。
 
+## 临时文件目录
+
+本地 JSON、Vue SFC 和截图只是 CLI 的输入输出载体，不是平台内容的事实源。统一写在当前会话工作目录下，不要写入 Skill 安装目录、Python 包目录或其它系统路径：
+
+```text
+.tmp/web-presentation/
+.tmp/web-presentation/shot/
+```
+
+约定：
+
+- 输入载体（payload、edits、候选/写出的 SFC、route tree、资源文本与元数据）写在 `.tmp/web-presentation/` 下；文件名尽量带对象类型与 ID，例如 `page-42.vue`、`edits-42.json`、`component-7.vue`、`route-tree.json`、`asset.json`；
+- 截图等输出证据写在 `.tmp/web-presentation/shot/`，例如 `shot/page-42.png`；
+- 用户提供的原始素材保持其真实路径；智能体自行生成或落盘的中间文件一律进入上述目录；
+- 汇报时给出相对路径即可；这些文件可随时删除，交付事实以 Backend 对象、Job 终态和重新读取结果为准。
+
 ## 文件参数
 
 复杂 JSON、Vue SFC 和资源内容通过文件传入，不在 Shell 中拼接长文本。常见入口包括：
@@ -74,7 +90,7 @@ wp --json preview get --page-id <page_id>
 - `--route-file`：完整路由树 JSON；
 - `--ids-file`：只含正整数的 JSON 数组。
 
-具体根节点、字段、枚举和参数组合只以对应命令 `--help` 中的当前 OpenAPI Schema 为准。
+具体根节点、字段、枚举和参数组合只以对应命令 `--help` 中的当前 OpenAPI Schema 为准。示例路径默认相对于 `.tmp/web-presentation/`。
 
 ## 写入、幂等与任务
 

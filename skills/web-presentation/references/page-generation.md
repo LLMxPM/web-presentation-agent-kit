@@ -88,19 +88,21 @@ import DefaultContainer from '@runtime-kit/public/components/page/layout/Default
 修改已有页面时，先读取最新源码并生成基于真实片段的结构化 edits，再使用当前版本：
 
 ```bash
-wp page validate <page_id> --mode content --source-file ./Page.vue
+wp page validate <page_id> --mode content --source-file .tmp/web-presentation/page-<page_id>.vue
 wp page edit <page_id> \
   --base-version-no <current_version_no> \
-  --edits-file ./edits.json \
+  --edits-file .tmp/web-presentation/edits-<page_id>.json \
   --idempotency-key <key>
 ```
 
-`edits.json` 必须使用当前 `wp page edit --help` 显示的结构化编辑 Schema；匹配片段来自最新源码且必须唯一命中。
+`edits-<page_id>.json` 必须使用当前 `wp page edit --help` 显示的结构化编辑 Schema；匹配片段来自最新源码且必须唯一命中。
 
 新建页面使用完整 SFC：
 
 ```bash
-wp page create --project-id <project_id> --name "核心结论" --file ./Page.vue --idempotency-key <key>
+wp page create --project-id <project_id> --name "核心结论" \
+  --file .tmp/web-presentation/page-new.vue \
+  --idempotency-key <key>
 ```
 
 页面标题、摘要、演讲者备注等轻量字段使用 `wp page update`；不要用 metadata 更新命令承载源码。页面创建和源码编辑会自动执行编译、渲染和布局校验；独立 `page validate` 用于候选预检或需要更多诊断，不是绕过平台写入校验的办法。
@@ -112,7 +114,7 @@ wp page create --project-id <project_id> --name "核心结论" --file ./Page.vue
 ```bash
 wp --json page get <page_id>
 wp --json page source <page_id>
-wp page screenshot <page_id> --output .tmp/page.png
+wp page screenshot <page_id> --output .tmp/web-presentation/shot/page-<page_id>.png
 ```
 
 检查截图中的画布尺寸、底部裁切、文字换行、视觉重心、资源加载、空态/缺图和真实内容密度。发现问题时优先做局部 edits，不要无证据地重写整页。

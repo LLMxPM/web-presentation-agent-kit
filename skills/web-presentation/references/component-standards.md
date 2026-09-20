@@ -37,11 +37,11 @@
 ```bash
 wp component get <component_id>
 wp component dependencies <component_id>
-wp component validate <component_id> --mode content --source-file ./Component.vue
+wp component validate <component_id> --mode content --source-file .tmp/web-presentation/component-<component_id>.vue
 wp component edit <component_id> \
   --base-version-no <base_version_no> \
   --base-draft-hash <draft_hash> \
-  --edits-file ./edits.json \
+  --edits-file .tmp/web-presentation/edits-<component_id>.json \
   --idempotency-key <key>
 wp component publish <component_id> --idempotency-key <key>
 ```

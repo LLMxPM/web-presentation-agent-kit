@@ -72,7 +72,9 @@ def get_component_cmd(ctx: click.Context, component_id: int) -> None:
     component_group,
     "create",
     contract("POST", "/api/v1/components"),
-    examples=('wp component create --name "指标卡" --import-name MetricCard --file ./MetricCard.vue --type content --idempotency-key component-metric-card',),
+    examples=(
+        'wp component create --name "指标卡" --import-name MetricCard --file .tmp/web-presentation/component-new.vue --type content --idempotency-key component-metric-card',
+    ),
 )
 @click.option("--name", help="组件显示名称；直接参数模式必填")
 @click.option("--import-name", help="稳定导入标识；直接参数模式必填")
@@ -133,7 +135,9 @@ def create_component_cmd(
     "update",
     contract("PATCH", "/api/v1/components/{component_id}", "仅更新 name 或 summary 时"),
     contract("POST", "/api/v1/jobs/mutations/components/metadata", "包含 import_name、component_type 或 preview_schema 时"),
-    examples=("wp component update 15 --payload-file ./component-update.json --idempotency-key component-15-metadata",),
+    examples=(
+        "wp component update 15 --payload-file .tmp/web-presentation/component-15-update.json --idempotency-key component-15-metadata",
+    ),
 )
 @click.argument("component_id", type=int)
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="组件元数据 JSON 请求体；复杂字段会自动进入异步任务")
@@ -176,7 +180,9 @@ def update_component_cmd(
     component_group,
     "edit",
     contract("POST", "/api/v1/components/{component_id}/edits"),
-    examples=("wp component edit 15 --base-version-no 2 --base-draft-hash <hash> --edits-file ./edits.json --idempotency-key component-15-edit",),
+    examples=(
+        "wp component edit 15 --base-version-no 2 --base-draft-hash <hash> --edits-file .tmp/web-presentation/edits-15.json --idempotency-key component-15-edit",
+    ),
 )
 @click.argument("component_id", type=int)
 @click.option("--edits-file", type=click.Path(exists=True, dir_okay=False), required=True, help="结构化编辑 JSON 数组；完整字段以当前 OpenAPI Schema 为准")
@@ -247,7 +253,9 @@ def component_dependencies_cmd(ctx: click.Context, component_id: int) -> None:
     component_group,
     "validate",
     contract("POST", "/api/v1/validate/entity"),
-    examples=("wp --json component validate 15 --mode content --source-file ./MetricCard.vue --detail",),
+    examples=(
+        "wp --json component validate 15 --mode content --source-file .tmp/web-presentation/component-15.vue --detail",
+    ),
 )
 @click.argument("component_id", type=int)
 @click.option("--mode", type=click.Choice(["current", "content", "edits"]), default="current", show_default=True, help="校验当前草稿、完整候选源码或结构化 edits")

@@ -7,9 +7,9 @@
 独立校验适用于：写入前检查一份候选 SFC、结构化 edits，或失败后请求详细诊断：
 
 ```bash
-wp --json page validate <page_id> --mode content --source-file ./Page.vue --detail
-wp --json page validate <page_id> --mode edits --edits-file ./edits.json --detail
-wp --json component validate <component_id> --mode content --source-file ./Component.vue --detail
+wp --json page validate <page_id> --mode content --source-file .tmp/web-presentation/page-<page_id>.vue --detail
+wp --json page validate <page_id> --mode edits --edits-file .tmp/web-presentation/edits-<page_id>.json --detail
+wp --json component validate <component_id> --mode content --source-file .tmp/web-presentation/component-<component_id>.vue --detail
 ```
 
 `current` 检查当前内容，`content` 检查完整候选源码，`edits` 检查基于当前对象的结构化编辑；具体参数以命令帮助为准。校验不通过是诊断结果，不是写入成功。
@@ -44,7 +44,7 @@ wp --json preview get --page-id <page_id>
 成功后获取最新截图：
 
 ```bash
-wp page screenshot <page_id> --output .tmp/page.png
+wp page screenshot <page_id> --output .tmp/web-presentation/shot/page-<page_id>.png
 ```
 
 检查：

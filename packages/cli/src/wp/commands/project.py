@@ -151,7 +151,9 @@ def get_project_configuration_cmd(ctx: click.Context, project_id: int) -> None:
     project_configuration_group,
     "update",
     contract("PUT", "/api/v1/projects/{project_id}/configuration"),
-    examples=("wp project configuration update 7 --payload-file ./configuration.json --idempotency-key project-7-config",),
+    examples=(
+        "wp project configuration update 7 --payload-file .tmp/web-presentation/project-7-configuration.json --idempotency-key project-7-config",
+    ),
 )
 @click.argument("project_id", type=int)
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="项目配置 JSON 请求体")
@@ -188,7 +190,9 @@ def get_project_route_cmd(ctx: click.Context, project_id: int) -> None:
     project_route_group,
     "replace",
     contract("PUT", "/api/v1/projects/{project_id}/route-tree"),
-    examples=("wp project route replace 7 --route-file ./route-tree.json --idempotency-key project-7-route",),
+    examples=(
+        "wp project route replace 7 --route-file .tmp/web-presentation/route-tree.json --idempotency-key project-7-route",
+    ),
 )
 @click.argument("project_id", type=int)
 @click.option("--route-file", type=click.Path(exists=True, dir_okay=False), required=True, help="完整路由树 JSON 文件")

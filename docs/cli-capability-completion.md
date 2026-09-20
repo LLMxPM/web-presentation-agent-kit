@@ -34,11 +34,11 @@
 示例：
 
 ```bash
-wp --workspace 1 project configuration update 10 --payload-file configuration.json
-wp page edit 20 --base-version-no 3 --edits-file edits.json
-wp asset content preview 30 --content-file diagram.svg
-wp component update 40 --payload-file component-metadata.json
-wp page archive --ids-file page-ids.json --yes
+wp --workspace 1 project configuration update 10 --payload-file .tmp/web-presentation/project-10-configuration.json
+wp page edit 20 --base-version-no 3 --edits-file .tmp/web-presentation/edits-20.json
+wp asset content preview 30 --content-file .tmp/web-presentation/diagram.svg
+wp component update 40 --payload-file .tmp/web-presentation/component-40-metadata.json
+wp page archive --ids-file .tmp/web-presentation/page-ids.json --yes
 ```
 
 页面和组件创建、源码编辑、组件复杂元数据更新默认等待 Mutation Job 终态；使用 `--no-wait` 只返回 Job，再使用 `wp job wait <job_id>` 轮询。

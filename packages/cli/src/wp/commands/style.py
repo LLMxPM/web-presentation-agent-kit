@@ -82,7 +82,9 @@ def get_style_cmd(ctx: click.Context, style_id: int) -> None:
     style_group,
     "create",
     contract("POST", "/api/v1/styles"),
-    examples=("wp style create --payload-file ./style.json --idempotency-key style-corporate",),
+    examples=(
+        "wp style create --payload-file .tmp/web-presentation/style.json --idempotency-key style-corporate",
+    ),
 )
 @click.option("--name", "-n", help="样式方案名称")
 @click.option("--description", "-d", help="样式描述")

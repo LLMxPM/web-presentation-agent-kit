@@ -9,7 +9,7 @@
 - 一个已授权目标工作空间的个人访问令牌 (PAT)；
 - 能执行本地终端命令并支持 Skill 的智能体。
 
-支持的智能体包括 Codex、Cursor、GitHub Copilot、Gemini CLI、OpenCode、Claude Code 和 Qoder。Windsurf 暂不支持；WorkBuddy 可使用标准 ZIP 手动导入。
+支持的智能体包括 Codex、Cursor、GitHub Copilot、Gemini CLI、OpenCode、Claude Code、MiMo 和 WorkBuddy。Windsurf 暂不支持。
 
 ## 推荐：让智能体协助安装
 
@@ -99,16 +99,17 @@ wp skill install
 | --- | --- | --- |
 | Codex、Cursor、GitHub Copilot、Gemini CLI、OpenCode | `.agents/skills/web-presentation` | `~/.agents/skills/web-presentation` |
 | Claude Code | `.claude/skills/web-presentation` | `~/.claude/skills/web-presentation` |
-| Qoder | `.qoder/skills/web-presentation` | `~/.qoder/skills/web-presentation` |
+| MiMo | `.mimocode/skills/web-presentation` | `~/.config/mimocode/skills/web-presentation` |
+| WorkBuddy | `.workbuddy/skills/web-presentation` | `~/.workbuddy/skills/web-presentation` |
 
 前五个 Agent 共用 `.agents/skills` 兼容目录，只会安装一份 Skill。也可使用明确的非交互命令：
 
 ```bash
-# 只安装当前 Agent；把 codex 替换为 cursor、copilot、gemini、opencode、claude 或 qoder
+# 只安装当前 Agent；把 codex 替换为 cursor、copilot、gemini、opencode、claude、mimo 或 workbuddy
 wp skill install --scope project --agent codex
 wp skill status --scope project --agent codex
 
-# 同时覆盖三个实际兼容目录
+# 同时覆盖四个实际兼容目录
 wp skill install --scope project --agent all
 wp skill status --scope project --agent all
 ```

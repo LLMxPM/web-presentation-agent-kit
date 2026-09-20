@@ -29,9 +29,14 @@
 
 ```bash
 wp --json asset list
-wp asset create --payload-file ./asset.json --content-file ./asset-content.txt --idempotency-key <key>
-wp asset upload ./image.png --type image --name hero-image --idempotency-key <key>
+wp asset create \
+  --payload-file .tmp/web-presentation/asset.json \
+  --content-file .tmp/web-presentation/asset-content.txt \
+  --idempotency-key <key>
+wp asset upload .tmp/web-presentation/hero-image.png --type image --name hero-image --idempotency-key <key>
 ```
+
+用户直接提供的原始文件保持其真实路径；智能体生成或落盘的 payload、文本和待上传文件写入 `.tmp/web-presentation/`。
 
 文本资源创建前查询是否已有 active 同名资源。可创建的文本类型包括 SVG 图标/图片、Draw.io、Mermaid、Chart 和 Formula；内容必须是完整 UTF-8 文本，并按命令帮助和 Backend Schema 满足扩展名及安全约束。图标 SVG 不得包含 script、事件属性、`foreignObject` 或远程引用，优先使用 `currentColor`。
 

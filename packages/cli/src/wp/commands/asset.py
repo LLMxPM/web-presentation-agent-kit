@@ -67,7 +67,9 @@ def get_asset_cmd(ctx: click.Context, asset_id: int) -> None:
     asset_group,
     "upload",
     contract("POST", "/api/v1/assets"),
-    examples=("wp asset upload ./hero.png --type image --name hero-image --idempotency-key asset-hero-image",),
+    examples=(
+        "wp asset upload .tmp/web-presentation/hero-image.png --type image --name hero-image --idempotency-key asset-hero-image",
+    ),
 )
 @click.argument("file_path", type=click.Path(exists=True, dir_okay=False))
 @click.option("--type", "asset_type", type=click.Choice(ASSET_TYPES), required=True, help="上传资源类型")
@@ -95,7 +97,9 @@ def upload_asset_cmd(ctx: click.Context, file_path: str, asset_type: str, name: 
     asset_group,
     "create",
     contract("POST", "/api/v1/assets/content"),
-    examples=("wp asset create --payload-file ./asset.json --content-file ./diagram.mmd --idempotency-key asset-diagram",),
+    examples=(
+        "wp asset create --payload-file .tmp/web-presentation/asset.json --content-file .tmp/web-presentation/diagram.mmd --idempotency-key asset-diagram",
+    ),
 )
 @click.option("--payload-file", type=click.Path(exists=True, dir_okay=False), required=True, help="文本资源创建 JSON 请求体")
 @click.option("--content-file", type=click.Path(exists=True, dir_okay=False), help="覆盖 JSON 中 content 的文本文件")

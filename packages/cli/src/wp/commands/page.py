@@ -139,7 +139,9 @@ def update_page_cmd(ctx: click.Context, page_id: int, payload_file: str) -> None
     page_group,
     "create",
     contract("POST", "/api/v1/pages"),
-    examples=('wp page create --project-id 7 --name "核心结论" --file ./Page.vue --idempotency-key page-7-core',),
+    examples=(
+        "wp page create --project-id 7 --name \"核心结论\" --file .tmp/web-presentation/page-new.vue --idempotency-key page-7-core",
+    ),
 )
 @click.option("--project-id", "-p", type=int, help="所属项目 ID")
 @click.option("--name", "-n", help="页面标题")
@@ -229,7 +231,9 @@ def copy_page_cmd(ctx: click.Context, page_id: int, payload_file: str) -> None:
     page_group,
     "edit",
     contract("POST", "/api/v1/pages/{page_id}/edits"),
-    examples=("wp page edit 21 --base-version-no 3 --edits-file ./edits.json --idempotency-key page-21-v3",),
+    examples=(
+        "wp page edit 21 --base-version-no 3 --edits-file .tmp/web-presentation/edits-21.json --idempotency-key page-21-v3",
+    ),
 )
 @click.argument("page_id", type=int)
 @click.option("--edits-file", type=click.Path(exists=True, dir_okay=False), required=True, help=_PAGE_EDITS_FILE_HELP)
@@ -300,7 +304,9 @@ def page_dependencies_cmd(ctx: click.Context, page_id: int) -> None:
     page_group,
     "validate",
     contract("POST", "/api/v1/validate/entity"),
-    examples=("wp --json page validate 21 --mode content --source-file ./Page.vue --detail",),
+    examples=(
+        "wp --json page validate 21 --mode content --source-file .tmp/web-presentation/page-21.vue --detail",
+    ),
 )
 @click.argument("page_id", type=int)
 @click.option(

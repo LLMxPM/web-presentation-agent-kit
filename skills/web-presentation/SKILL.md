@@ -5,7 +5,7 @@ description: Use the wp CLI to configure Web Presentation access and create or r
 
 # Web Presentation Agent
 
-Web Presentation 是面向 AI 的演示内容创作平台，不是单文件幻灯片生成器。通过 `wp` CLI 操作 Backend 中的真实平台对象：演示内容组织在项目和路由中，每一页是 Backend 保存、Runtime 在固定画布编译渲染的 Vue SFC；组件、资源、主题、样式和字体在工作空间内复用。临时 JSON、Vue 和截图文件只是 CLI 的输入输出载体，不是平台内容的事实源。
+Web Presentation 是面向 AI 的演示内容创作平台，不是单文件幻灯片生成器。通过 `wp` CLI 操作 Backend 中的真实平台对象：演示内容组织在项目和路由中，每一页是 Backend 保存、Runtime 在固定画布编译渲染的 Vue SFC；组件、资源、主题、样式和字体在工作空间内复用。临时 JSON、Vue 和截图文件只是 CLI 的输入输出载体，不是平台内容的事实源；统一放在当前工作目录下的 `.tmp/web-presentation/`（截图用其 `shot/` 子目录），见 [CLI 工作流](./references/cli-usage.md)。
 
 ## 先理解平台再操作
 
