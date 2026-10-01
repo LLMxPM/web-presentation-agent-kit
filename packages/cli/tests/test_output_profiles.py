@@ -124,3 +124,49 @@ def test_json_and_raw_are_mutually_exclusive() -> None:
 
     assert result.exit_code != 0
     assert "不能同时使用" in result.output
+
+
+def test_component_projection_includes_import_usage() -> None:
+    """组件列表和详情投影中必须保留 import_path 和 import_statement。"""
+
+    component_list = project_response(
+        {
+            "items": [
+                {
+                    "id": 4,
+                    "code": "CMP001",
+                    "name": "卡片",
+                    "import_name": "MyCard",
+                    "current_version_no": 1,
+                    "import_path": "@workspace-components/CMP001/v/1",
+                    "import_statement": "import MyCard from '@workspace-components/CMP001/v/1'",
+                    "content": "<template />",
+                }
+            ],
+            "page": 1,
+            "page_size": 20,
+            "total": 1,
+        },
+        "component_list",
+    )
+    assert component_list["items"][0]["import_path"] == "@workspace-components/CMP001/v/1"
+    assert component_list["items"][0]["import_statement"] == "import MyCard from '@workspace-components/CMP001/v/1'"
+    assert "content" not in component_list["items"][0]
+
+    component_detail = project_response(
+        {
+            "id": 4,
+            "code": "CMP001",
+            "name": "卡片",
+            "import_name": "MyCard",
+            "current_version_no": 1,
+            "import_path": "@workspace-components/CMP001/v/1",
+            "import_statement": "import MyCard from '@workspace-components/CMP001/v/1'",
+            "content": "<template />",
+            "preview_schema": "{}",
+            "draft_hash": "hash123",
+        },
+        "component_detail",
+    )
+    assert component_detail["import_path"] == "@workspace-components/CMP001/v/1"
+    assert component_detail["import_statement"] == "import MyCard from '@workspace-components/CMP001/v/1'"

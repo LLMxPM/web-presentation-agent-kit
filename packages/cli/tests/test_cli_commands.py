@@ -344,3 +344,55 @@ def test_command_idempotency_key_is_passed_to_client(monkeypatch, tmp_path) -> N
     assert result.exit_code == 0, result.output
     assert client_class.call_args.kwargs["idempotency_key"] == "replay-key"
     fake_client.post.assert_called_once_with("/projects", json_data={"name": "演示项目", "description": None})
+
+
+def test_component_list_displays_import_path_column(monkeypatch, tmp_path) -> None:
+    """组件列表表格必须包含'引用路径'列并正确展示已发布与未发布组件的路径提示。"""
+
+    monkeypatch.setattr(config_module, "CONFIG_DIR", tmp_path)
+    monkeypatch.setattr(config_module, "CONFIG_FILE", tmp_path / "config.json")
+    save_config(CliConfig(current_profile="default", profiles={"default": ProfileConfig(api_url="http://localhost:8000", pat="test-pat", default_workspace_id=1)}))
+
+    fake_client = MagicMock()
+    fake_client.get.return_value = {
+        "items": [
+            {
+                "id": 1,
+                "code": "CMP001",
+                "import_name": "MetricCard",
+                "name": "指标卡",
+                "component_type": "content",
+                "status": "active",
+                "current_version_no": 2,
+                "import_path": "@workspace-components/CMP001/v/2",
+                "import_statement": "import MetricCard from '@workspace-components/CMP001/v/2'",
+            },
+            {
+                "id": 2,
+                "code": "CMP002",
+                "import_name": "DraftCard",
+                "name": "草稿卡",
+                "component_type": "content",
+                "status": "active",
+                "current_version_no": 0,
+            },
+        ],
+        "total": 2,
+        "page": 1,
+        "page_size": 50,
+    }
+
+    with patch("wp.commands.common.ApiClient", return_value=fake_client):
+        table_result = CliRunner(env={"COLUMNS": "120"}).invoke(main, ["component", "list"])
+        json_result = CliRunner().invoke(main, ["--json", "component", "list"])
+
+    assert table_result.exit_code == 0, table_result.output
+    assert "引用路径" in table_result.output
+    assert "@workspace-components/CMP001/v/2" in table_result.output
+    assert "未发布" in table_result.output
+
+    assert json_result.exit_code == 0, json_result.output
+    data = json.loads(json_result.output)
+    assert data["items"][0]["import_path"] == "@workspace-components/CMP001/v/2"
+    assert data["items"][0]["import_statement"] == "import MetricCard from '@workspace-components/CMP001/v/2'"
+    assert data["items"][1].get("import_path") is None

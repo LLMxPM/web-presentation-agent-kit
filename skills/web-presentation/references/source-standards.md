@@ -10,6 +10,18 @@
 - 只能引用平台真实返回的版本化 Runtime Kit 能力、已发布工作空间组件、可见工作空间资源和自身代码。
 - Tailwind class 必须以完整静态字符串出现在模板、脚本常量或顶层枚举映射中；禁止 `text-${tone}`、`from-${color}` 等运行时拼接。Arbitrary value 也要以完整静态类出现在源码中。
 
+## 工作空间组件引用契约
+
+- 页面源码引用工作空间组件时，统一使用已发布组件的版本化别名：
+  ```ts
+  import <ImportName> from '@workspace-components/<component_code>/v/<version_no>'
+  ```
+- 约束说明：
+  - 路径中的编码必须是组件业务编码 `code`（如 `CMP20260503001`），不能使用自增 ID、本地相对路径或 `@/` 别名；
+  - 版本号必须是当前大于 0 的正式发布版本 `current_version_no`，未发布或草稿状态的组件不可在页面中引用；
+  - 导入标识符优先使用组件元数据中的 `import_name`（或展示名 PascalCase）；
+  - 可直接通过 `wp component get <component_id>` 或 `wp component list` 查询已发布的 `import_path` 与 `import_statement`。
+
 ## 画布和布局
 
 - 页面根部优先使用项目建议的已发布页面组件，其次是工作空间已发布页面组件，最后才是版本化 `DefaultContainer`。

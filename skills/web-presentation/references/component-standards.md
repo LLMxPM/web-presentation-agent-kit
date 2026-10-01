@@ -28,6 +28,7 @@
 - `props` 字段与 `defineProps` 一致，字段的 `type`、`label`、`default` 和 `options` 必须真实可用；预览值不要放在 Schema 根节点。
 - 支持的 prop 类型以当前平台规范为准，常见为 `string`、`textarea`、`number`、`boolean`、`select`、`json`。
 - `slots` 使用声明式 `text`、`html`、`component` 节点；slot component 只能引用版本化 Runtime Kit 或已发布工作空间组件，不能引用 Runtime 私有路径或动态 import。
+- 引用工作空间组件（作为 slot component 或在组件源码中引用子组件）时，必须使用 `@workspace-components/<component_code>/v/<version_no>`，且被引用组件必须为已发布的正式版本（`current_version_no > 0`），禁止引用草稿或使用自增主键 ID。
 - `mocks` 只保存 JSON/文本级静态值，不放函数、表达式、HTTP 请求或 component-preview 内部能力。
 - `presets` 只写覆盖值；key 稳定、label 清晰，优先提供 2～3 个高质量真实场景。
 - 资源名、默认值和 mock 数据必须来自真实工具结果；没有资源时使用空值或明确占位，不编造名称。

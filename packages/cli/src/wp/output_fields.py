@@ -80,6 +80,8 @@ COMPONENT_LIST_FIELDS = (
     "status",
     "created_at",
     "updated_at",
+    "import_path",
+    "import_statement",
 )
 SUGGESTED_COMPONENT_FIELDS = (
     "id",
@@ -91,6 +93,8 @@ SUGGESTED_COMPONENT_FIELDS = (
     "current_version_no",
     "available",
     "unavailable_reason",
+    "import_path",
+    "import_statement",
 )
 COMPONENT_DETAIL_FIELDS = COMPONENT_LIST_FIELDS + ("content", "preview_schema", "draft_hash")
 

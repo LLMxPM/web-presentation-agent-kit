@@ -47,11 +47,29 @@ def list_components_cmd(ctx: click.Context, page: int, page_size: int, keyword: 
         if ctx.obj.get("as_json"):
             output_result(ctx, result, profile="component_list")
             return
+        def _resolve_import_path(item: dict) -> str:
+            if item.get("import_path"):
+                return str(item["import_path"])
+            code = item.get("code")
+            version_no = item.get("current_version_no")
+            if code and isinstance(version_no, int) and version_no > 0:
+                return f"@workspace-components/{code}/v/{version_no}"
+            if isinstance(version_no, int) and version_no <= 0:
+                return "未发布"
+            return "-"
+
         rows = [
-            [item.get("id"), item.get("import_name", "-"), item.get("name", "-"), item.get("component_type", "-"), item.get("status", "-")]
+            [
+                item.get("id"),
+                item.get("import_name", "-"),
+                item.get("name", "-"),
+                item.get("component_type", "-"),
+                item.get("status", "-"),
+                _resolve_import_path(item),
+            ]
             for item in result.get("items", [])
         ]
-        print_table("组件列表", ["ID", "导入标识", "名称", "类型", "状态"], rows)
+        print_table("组件列表", ["ID", "导入标识", "名称", "类型", "状态", "引用路径"], rows)
     except ApiClientError as err:
         handle_api_error("获取组件列表失败", err)
 
