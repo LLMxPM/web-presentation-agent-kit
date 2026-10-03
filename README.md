@@ -164,4 +164,4 @@ pipx install web-presentation-cli
 
 ### 契约可用性与多页交付
 
-CLI 0.3.0 的契约叶子帮助失败时立即非零退出，不输出部分帮助；`wp doctor` 独立检查 OpenAPI，有错误时退出 1。`--json` 输出稳定的精简业务字段，`--raw` 保留完整 Backend 响应；内置 Skill 当前为 `1.3.1`，临时文件统一约定在 `.tmp/web-presentation/`，并补充短期预览地址交付流程。具体安装与行为变更见 [CLI 说明](packages/cli/README.md)。
+CLI 0.3.0 的契约叶子帮助失败时立即非零退出，不输出部分帮助；`wp doctor` 独立检查 OpenAPI，有错误时退出 1。`--json` 输出稳定的精简业务字段，`--raw` 保留完整 Backend 响应；内置 Skill 当前为 `1.3.2`，临时文件统一约定在 `.tmp/web-presentation/`，并补充短期预览地址交付流程。CLI 0.3.1 起组件列表额外给出 `import_path` 与 `import_statement`，Skill 同步写明 `@workspace-components/<code>/v/<version_no>` 的发布版引用契约。具体安装与行为变更见 [CLI 说明](packages/cli/README.md)。

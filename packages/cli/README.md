@@ -101,7 +101,7 @@ wp --raw project list
 
 Skill 与 CLI 一起发布，但使用独立版本。`wp skill status` 会识别缺失、过期、较新、不兼容、用户修改和未受管理等状态；普通升级不会覆盖用户修改，`--force` 会先保留同级备份。CLI 升级不会隐式改写已安装 Skill，需要重新运行 `wp skill install` 完成同步。
 
-当前版本关系：CLI `0.3.0` 内置 `web-presentation` Skill `1.3.1`，Skill 声明的 CLI 兼容范围为 `>=0.3.0,<0.4.0`。构建时会把这组关系与规范化内容 SHA-256 写入 manifest。
+当前版本关系：CLI `0.3.1` 内置 `web-presentation` Skill `1.3.2`，Skill 声明的 CLI 兼容范围为 `>=0.3.0,<0.4.0`。构建时会把这组关系与规范化内容 SHA-256 写入 manifest。
 
 Windsurf 不属于本地目录安装目标。`wp skill export` 生成的标准 ZIP 可用于支持本地上传的产品；CLI 不从 URL 或第三方仓库下载 Skill。
 
@@ -142,6 +142,10 @@ wp job wait <job_id>
 
 写入命令支持 `--idempotency-key <key>`；网络超时后需要重放同一业务请求时复用原 key，不要把同一个 key 用于不同请求。
 
+
+### 0.3.1 行为变更
+
+`wp component list` 表格新增「引用路径」列，未发布组件显示 `未发布`；`--json` 的组件列表与建议组件投影新增 `import_path` 与 `import_statement` 字段，取自 Backend 返回，供页面源码直接拼接 `@workspace-components/<code>/v/<version_no>` 别名。内置 Skill `1.3.2` 同步补充工作空间组件的版本化引用契约，禁止引用草稿、自增 ID 或本地相对路径。
 
 ### 0.3.0 行为变更
 
