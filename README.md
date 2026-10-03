@@ -6,7 +6,7 @@
 - `web-presentation` Skill：指导 Agent 按工作空间、规范、校验和异步任务流程创作；
 - `api-client`：供 CLI 使用的认证、工作空间上下文、幂等、错误和任务轮询客户端。
 
-MCP Server 不在本期范围内。仓库中的 `mcp-server/` 和相关设计文档仅作为后续接入占位，不属于当前 Skill、CLI 文档、默认测试门禁或发布能力；本期不要据此调用或扩展 MCP。
+MCP Server 已进入[远程多用户实施规划](docs/mcp-implementation-plan.md)，按 A0～A9 拆分本仓工作，并与主仓 M0～M7 交接。现有 `mcp-server/` 仍为历史骨架，尚未完成实现、验收或发布；当前可用入口、Skill 和默认交付门禁仍以 CLI 为准。
 
 主平台仓库是 [web-presentation](https://github.com/LLMxPM/web-presentation)，项目官网与案例演示见 [https://presentation.inputloom.com/](https://presentation.inputloom.com/)。主平台负责 Backend、Editor、Runtime 和 `/api/v1` External API v1。本仓库不直接访问主平台数据库、Redis、Runtime 或 Chromium。
 
@@ -88,8 +88,8 @@ web-presentation-agent-kit/
 ├── packages/
 │   ├── api-client/       # 共用 HTTP 客户端
 │   └── cli/              # wp 命令行
-├── mcp-server/           # 后续接入占位，本期不纳入范围
-├── docs/                 # CLI 能力补齐与接入实施文档
+├── mcp-server/           # 历史骨架，远程多用户方案待实施
+├── docs/                 # CLI 文档与 MCP 跨仓实施计划
 ├── skills/
 │   └── web-presentation/ # 配套 Agent Skill
 ├── tests/                # 跨包契约测试
