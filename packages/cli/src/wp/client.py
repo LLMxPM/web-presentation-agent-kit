@@ -1,4 +1,4 @@
-"""文件功能：提供 CLI 对共享 External API v1 客户端的 Profile 适配。"""
+"""文件功能：提供 CLI 对CLI 同步 External API v1 客户端的 Profile 适配。"""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from wp_api_client import ApiClient as SharedApiClient, ApiClientError
 
 
 class ApiClient(SharedApiClient):
-    """把 CLI ProfileConfig 适配为共享 API Client。"""
+    """把 CLI ProfileConfig 适配为CLI 同步 API Client。"""
 
     def __init__(
         self,

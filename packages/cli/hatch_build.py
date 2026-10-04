@@ -1,4 +1,4 @@
-"""文件功能：为 CLI 构建映射共享 API Client，并打包带版本清单的官方 Skill。"""
+"""文件功能：为 CLI 构建映射CLI 同步 API Client，并打包带版本清单的官方 Skill。"""
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ class CustomBuildHook(BuildHookInterface):
         raise RuntimeError("无法定位 skills/catalog.toml，不能构建 CLI Skill 资源。")
 
     def _find_api_client_source(self) -> Path:
-        """定位同仓源码或已进入 sdist 的共享 API Client 包。"""
+        """定位同仓源码或已进入 sdist 的CLI 同步 API Client 包。"""
 
         candidates = [
             Path(self.root).parent / "api-client" / "src" / "wp_api_client",

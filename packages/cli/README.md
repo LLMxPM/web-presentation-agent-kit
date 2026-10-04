@@ -2,7 +2,7 @@
 
 面向 `web-presentation` AI 演示文稿创作平台的官方命令行与 Agent 工具包。
 
-External API 路径、Scope、错误码、幂等和异步任务语义以主仓 [External Agent API v1 契约](https://github.com/LLMxPM/web-presentation/blob/main/docs/developer/reference/external-agent-api.md) 为准；CLI 命令和参数以本仓 `wp --help` 与 CLI 实施文档为准。
+External API 路径、Scope、错误码、幂等和异步任务语义以主仓 [External Agent API v1 契约](https://github.com/LLMxPM/web-presentation/blob/dev/docs/developer/reference/external-agent-api.md) 为准；CLI 命令和参数以本仓 `wp --help` 与 CLI 实施文档为准。
 
 ## 安装与快速开始
 
@@ -22,7 +22,7 @@ wp --help
 从源码开发时才需要以下命令，普通用户不需要克隆仓库：
 
 ```bash
-# 在 agent-kit 仓库根目录安装 CLI
+# 在 CLI 仓库根目录安装 CLI
 uv pip install -e ./packages/cli
 ```
 
@@ -110,7 +110,7 @@ Windsurf 不属于本地目录安装目标。`wp skill export` 生成的标准 Z
 把下面这段发给当前智能体。它只负责安装 CLI 和 Skill；登录由安装后的 Skill 指引：
 
 ```text
-请帮我安装 Web Presentation 的官方 `wp` CLI 和它内置的 `web-presentation` Skill。CLI 项目与使用说明：https://github.com/LLMxPM/web-presentation-agent-kit 。正常安装使用 PyPI 包，不要默认克隆源码仓库。
+请帮我安装 Web Presentation 的官方 `wp` CLI 和它内置的 `web-presentation` Skill。CLI 项目与使用说明：https://github.com/LLMxPM/web-presentation-cli 。正常安装使用 PyPI 包，不要默认克隆源码仓库。
 
 先确认当前环境有 Python 3.11+，检查 `wp` 是否已安装；未安装时优先运行 `uv tool install web-presentation-cli`，再用 `wp --version` 验证。已安装时不要擅自升级或降级。
 
@@ -119,7 +119,7 @@ CLI 可用后，立即在当前项目运行 `wp skill install`，选择项目级
 
 安装成功并重新加载后，可以对智能体说：`请使用 $web-presentation 完成首次登录和工作空间配置。`
 
-更完整的人工操作步骤和排障说明见 [CLI 与 Agent Skill 安装指南](https://github.com/LLMxPM/web-presentation-agent-kit/blob/main/docs/getting-started.md)。
+更完整的人工操作步骤和排障说明见 [CLI 与 Agent Skill 安装指南](https://github.com/LLMxPM/web-presentation-cli/blob/master/docs/getting-started.md)。
 
 ## 常用操作
 

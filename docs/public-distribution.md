@@ -1,6 +1,6 @@
 # CLI 公开分发
 
-本仓库通过 PyPI 分发一个包：`web-presentation-cli`。用户安装这个包后即可获得 `wp` 命令；共享 API Client 和确定版本的官方 `web-presentation` Skill 会作为内部资源一起进入 wheel 和 source distribution，不需要单独安装。
+本仓库通过 PyPI 分发一个包：`web-presentation-cli`。用户安装这个包后即可获得 `wp` 命令；CLI 同步 API Client 和确定版本的官方 `web-presentation` Skill 会作为内部资源一起进入 wheel 和 source distribution，不需要单独安装。
 
 GitHub Actions 已配置为：推送 `v*` 版本标签后，先运行 CLI/API Client 测试，再构建并发布一个 CLI 发行包。工作流文件为 `.github/workflows/publish.yml`。
 
@@ -13,11 +13,13 @@ GitHub Actions 已配置为：推送 `v*` 版本标签后，先运行 CLI/API Cl
 | 字段 | 值 |
 | --- | --- |
 | Owner | `LLMxPM` |
-| Repository name | `web-presentation-agent-kit` |
+| Repository name | `web-presentation-cli` |
 | Workflow name | `publish.yml` |
 | Environment name | `pypi` |
 
 首次发布前项目尚不存在时，使用 PyPI 的 Pending Publisher；首次成功发布后，它会绑定为正式 Trusted Publisher。
+
+仓库已从 `web-presentation-agent-kit` 重命名为 `web-presentation-cli`。下次发布前必须在 PyPI 更新既有 Trusted Publisher 的 Repository name；GitHub 的旧地址重定向不会改变 PyPI 对 OIDC 仓库身份的校验，配置字段见 [PyPI 官方说明](https://docs.pypi.org/trusted-publishers/adding-a-publisher/)。本次拆仓不发布新的 CLI 版本。
 
 ### 2. 创建 GitHub Environment
 

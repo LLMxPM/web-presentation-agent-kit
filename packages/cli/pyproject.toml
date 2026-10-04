@@ -17,9 +17,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/LLMxPM/web-presentation-agent-kit"
-Repository = "https://github.com/LLMxPM/web-presentation-agent-kit"
-Issues = "https://github.com/LLMxPM/web-presentation-agent-kit/issues"
+Homepage = "https://github.com/LLMxPM/web-presentation-cli"
+Repository = "https://github.com/LLMxPM/web-presentation-cli"
+Issues = "https://github.com/LLMxPM/web-presentation-cli/issues"
 
 [dependency-groups]
 dev = [

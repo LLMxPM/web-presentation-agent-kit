@@ -2,37 +2,38 @@
 
 ## 仓库定位
 
-`web-presentation-agent-kit` 是 `web-presentation` 的外部 Agent 接入仓库。当前可交付范围为 `wp` CLI、共享 API Client 和配套 Skill，不承载 Backend、Editor、Runtime 或平台数据库。2026-10-03 已按用户要求恢复远程多用户 MCP 规划，工作包见 [MCP 实施计划](docs/mcp-implementation-plan.md)；当前仅落计划，历史骨架不代表可用能力。正式实现启动时再同步相应开发与验证门禁。
+`web-presentation-cli` 维护官方 `wp` CLI、仓内专用同步 API Client 与配套 Skill，继承原 `web-presentation-agent-kit` 的 Git 历史与 Apache-2.0 协议。MCP 代码、异步客户端、实施规划和服务交付已拆到 [web-presentation-mcp](https://github.com/LLMxPM/web-presentation-mcp)。本仓不承载 MCP、Backend、Editor、Runtime 或平台数据库。
 
 ## 基础规范
 
 - 使用中文进行协作、提交说明和文档编写。
-- Python 项目使用 `uv` 管理依赖，使用 `.venv` 管理虚拟环境。
-- 新增 Python 源文件开头写明文件功能描述；Markdown 文件不需要。
+- Python 项目使用 `uv` 管理依赖，使用根 `.venv` 管理虚拟环境。
+- 源文件开头写明文件功能描述；Markdown 文件不需要。
 - 函数补充中文注释，优先说明职责、输入输出和关键约束。
+- 文件职责过多时拆分模块；不要为了拆仓重构无关功能。
 - 外部 HTTP 公共前缀固定为 `/api/v1`。
-- 不要在 CLI 中直接访问 Backend 数据库、Redis、Runtime、Chromium 或内部 Service。
-- 不要复制 Backend `tool_specs.py` 的内部工具目录；以 External API v1 契约、standards 和资源接口为准。
-- 已授权的 MCP 规划以实施计划维护；后续按用户明确启动的工作包开发。未完成验收前，不把 MCP 作为当前可用入口写入 Skill 或用户文档。
+- CLI 不直接访问 Backend 数据库、Redis、Runtime、Chromium 或内部 Service。
+- 不复制 Backend `tool_specs.py` 的内部工具目录；以 External API v1、OpenAPI、standards 和资源接口为准。
+- CLI 保留同步调用。MCP 自行维护异步客户端，不依赖本仓客户端或 `wp`；允许小规模传输适配重复，不发布共享 SDK。
 
 ## 模块边界
 
-- `packages/api-client/`：只负责 CLI 使用的 HTTP、PAT、工作空间 Header、幂等 Header、错误和任务轮询；不包含 Click 或协议层代码。
-- `packages/cli/`：负责 `wp` 命令解析、Profile 配置和终端输出；通过 `api-client` 调 Backend。
-- `mcp-server/`：远程多用户方案待实施，协议、传输、安全和任务边界见实施计划；当前历史骨架不纳入正式发布范围，实施时补齐对应测试门禁。
-- `skills/`：只描述 CLI Agent 的工作流、检查点和安全边界，不保存 Token，不内置平台业务数据副本。
+- `packages/api-client/`：CLI 专用同步 HTTP、PAT、工作空间 Header、幂等、错误和任务轮询；随 CLI 打包，不单独发布，不包含 Click 或 MCP。
+- `packages/cli/`：`wp` 命令解析、Profile、终端输出与本地文件流程。
+- `skills/`：CLI Agent 工作流、检查点和安全边界；不保存 Token 或平台业务数据副本。
+- `docs/`：CLI 安装、能力和发布文档。远程 MCP 实施计划只在 MCP 仓库维护。
 
 ## 验证
 
 ```powershell
+uv sync --all-packages --frozen
 uv run pytest packages/api-client/tests packages/cli/tests
 uv run --project packages/cli wp --help
+uv build --package web-presentation-cli --out-dir .tmp/dist
+uv run python packages/cli/tests/verify_skill_distribution.py .tmp/dist
 ```
 
-根仓 `uv run pytest` 仍可用于全量回归，但历史 `mcp-server/tests` 尚不足以作为远程 MCP 交付门禁。规划阶段可维护 MCP 文档；进入实现阶段后，按实施计划补齐协议、身份隔离和真实 HTTP 测试，并将它们纳入对应 CI，不能只依赖工具名称检查。
-
-涉及 External API v1 路径、Scope、DTO、错误码或异步任务语义变化时，应同步更新主仓 `web-presentation` 的契约测试和本仓的适配测试。
-
+External API v1 路径、Scope、DTO、错误码或任务语义变化时，联动主仓契约与本仓适配测试。跨仓契约测试需取得明确的主仓版本；相邻主仓缺失导致 skip 时必须报告，不能当作发布验证通过。CLI 拆仓不改变 `wp`、PyPI 包名和已发布版本；后续发布前更新 PyPI Trusted Publisher 的仓库身份，见 [CLI 公开分发](docs/public-distribution.md)。
 
 ## 契约失败语义
 

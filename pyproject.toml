@@ -1,5 +1,5 @@
 [tool.uv.workspace]
-members = ["packages/api-client", "packages/cli", "mcp-server"]
+members = ["packages/api-client", "packages/cli"]
 
 [tool.uv]
 default-groups = ["dev"]

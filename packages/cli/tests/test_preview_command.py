@@ -8,7 +8,7 @@ from wp.cli import main
 
 
 def test_project_preview_uses_shared_client_flow() -> None:
-    """项目预览应把目标和入口路由交给共享 API Client。"""
+    """项目预览应把目标和入口路由交给CLI 同步 API Client。"""
 
     client = MagicMock()
     client.create_preview_artifact.return_value = {

@@ -16,7 +16,7 @@
 把下面这段提示词复制给准备使用的智能体。它只负责安装 CLI 和 Skill；不要在 Skill 可用前让陌生智能体自行处理平台登录。
 
 ```text
-请帮我安装 Web Presentation 的官方 `wp` CLI 和它内置的 `web-presentation` Skill。CLI 项目与使用说明：https://github.com/LLMxPM/web-presentation-agent-kit 。正常安装使用 PyPI 包，不要默认克隆源码仓库。
+请帮我安装 Web Presentation 的官方 `wp` CLI 和它内置的 `web-presentation` Skill。CLI 项目与使用说明：https://github.com/LLMxPM/web-presentation-cli 。正常安装使用 PyPI 包，不要默认克隆源码仓库。
 
 先确认当前环境有 Python 3.11+，检查 `wp` 是否已安装；未安装时优先运行 `uv tool install web-presentation-cli`，再用 `wp --version` 验证。已安装时不要擅自升级或降级。
 

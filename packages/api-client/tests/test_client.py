@@ -1,4 +1,4 @@
-"""文件功能：验证共享 API Client 的 External API v1 路径、认证和安全边界。"""
+"""文件功能：验证CLI 同步 API Client 的 External API v1 路径、认证和安全边界。"""
 
 import json
 from unittest.mock import Mock

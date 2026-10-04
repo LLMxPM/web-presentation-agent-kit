@@ -1,16 +1,16 @@
-# web-presentation-agent-kit
+# web-presentation-cli
 
-`web-presentation-agent-kit` 是 `web-presentation` 的 CLI 外部 Agent 接入仓库，集中维护：
+`web-presentation-cli` 是 `web-presentation` 的 CLI 外部 Agent 接入仓库，集中维护：
 
 - `wp` CLI：面向 Shell/桌面 Agent 的确定性命令行能力；
 - `web-presentation` Skill：指导 Agent 按工作空间、规范、校验和异步任务流程创作；
 - `api-client`：供 CLI 使用的认证、工作空间上下文、幂等、错误和任务轮询客户端。
 
-MCP Server 已进入[远程多用户实施规划](docs/mcp-implementation-plan.md)，按 A0～A9 拆分本仓工作，并与主仓 M0～M7 交接。现有 `mcp-server/` 仍为历史骨架，尚未完成实现、验收或发布；当前可用入口、Skill 和默认交付门禁仍以 CLI 为准。
+2026-10-04 起，MCP 代码、规划和服务交付独立到 [web-presentation-mcp](https://github.com/LLMxPM/web-presentation-mcp)。本仓只维护 CLI、专用同步客户端和配套 Skill；MCP 在自己的仓库维护异步客户端，两端仅共用 Backend External API 契约。远程多用户 MCP 尚未交付。拆分边界见 [仓库拆分记录](docs/repository-split.md)。
 
 主平台仓库是 [web-presentation](https://github.com/LLMxPM/web-presentation)，项目官网与案例演示见 [https://presentation.inputloom.com/](https://presentation.inputloom.com/)。主平台负责 Backend、Editor、Runtime 和 `/api/v1` External API v1。本仓库不直接访问主平台数据库、Redis、Runtime 或 Chromium。
 
-主仓唯一维护的 External API v1 契约：[External Agent API v1 契约](https://github.com/LLMxPM/web-presentation/blob/main/docs/developer/reference/external-agent-api.md)。本仓库当前只维护 CLI、共享客户端和 Skill 的接入实现。
+主仓唯一维护的 External API v1 契约：[External Agent API v1 契约](https://github.com/LLMxPM/web-presentation/blob/dev/docs/developer/reference/external-agent-api.md)。本仓库当前只维护 CLI、专用同步客户端和 Skill 的接入实现。
 
 ## 用户快速开始
 
@@ -70,7 +70,7 @@ wp skill status --scope project --agent all
 复制下面这段即可。安装命令的选择、目录识别和排障由智能体结合当前环境与 `wp` 的交互提示完成：
 
 ```text
-请帮我安装 Web Presentation 的官方 `wp` CLI 和它内置的 `web-presentation` Skill。CLI 项目与使用说明：https://github.com/LLMxPM/web-presentation-agent-kit 。正常安装使用 PyPI 包，不要默认克隆源码仓库。
+请帮我安装 Web Presentation 的官方 `wp` CLI 和它内置的 `web-presentation` Skill。CLI 项目与使用说明：https://github.com/LLMxPM/web-presentation-cli 。正常安装使用 PyPI 包，不要默认克隆源码仓库。
 
 先确认当前环境有 Python 3.11+，检查 `wp` 是否已安装；未安装时优先运行 `uv tool install web-presentation-cli`，再用 `wp --version` 验证。已安装时不要擅自升级或降级。
 
@@ -84,15 +84,13 @@ CLI 可用后，立即在当前项目运行 `wp skill install`，选择项目级
 ## 目录
 
 ```text
-web-presentation-agent-kit/
+web-presentation-cli/
 ├── packages/
-│   ├── api-client/       # 共用 HTTP 客户端
+│   ├── api-client/       # CLI 专用同步 HTTP 客户端，随 CLI 打包
 │   └── cli/              # wp 命令行
-├── mcp-server/           # 历史骨架，远程多用户方案待实施
-├── docs/                 # CLI 文档与 MCP 跨仓实施计划
+├── docs/                 # CLI 安装、能力和发布文档
 ├── skills/
 │   └── web-presentation/ # 配套 Agent Skill
-├── tests/                # 跨包契约测试
 └── pyproject.toml        # uv workspace
 ```
 
@@ -134,7 +132,7 @@ CLI 通过本地 Profile 配置 Backend 地址、PAT 和默认工作空间。对
 
 ## 边界
 
-1. Backend 是权限、工作空间隔离、业务校验和异步任务状态的最终事实源；API 语义以主仓 [External Agent API v1 契约](https://github.com/LLMxPM/web-presentation/blob/main/docs/developer/reference/external-agent-api.md) 为准。
+1. Backend 是权限、工作空间隔离、业务校验和异步任务状态的最终事实源；API 语义以主仓 [External Agent API v1 契约](https://github.com/LLMxPM/web-presentation/blob/dev/docs/developer/reference/external-agent-api.md) 为准。
 2. CLI 和 Skill 不复制 Backend 内部 AI `tool_specs.py`；CLI 只暴露面向用户可直接执行的资源化命令，平台契约由主仓 External API 文档维护。
 3. 写操作必须携带幂等语义；页面、组件和截图等重任务通过 Backend 已有任务接口执行。
 4. PAT 不得进入 CLI 输出、异常消息、日志或 telemetry。
